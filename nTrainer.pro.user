@@ -1,261 +1,283 @@
 <!DOCTYPE QtCreatorProject>
 <qtcreator>
  <data>
+  <variable>RunConfiguration0-BaseEnvironmentBase</variable>
+  <value type="int">2</value>
+ </data>
+ <data>
   <variable>RunConfiguration0-CommandLineArguments</variable>
-  <valuelist type="QVariantList" />
+  <valuelist type="QVariantList"/>
  </data>
  <data>
   <variable>RunConfiguration0-ProFile</variable>
-  <value type="QString" >nTrainer.pro</value>
+  <value type="QString">nTrainer.pro</value>
  </data>
  <data>
   <variable>RunConfiguration0-RunConfiguration.name</variable>
-  <value type="QString" >nTrainer</value>
+  <value type="QString">nTrainer</value>
  </data>
  <data>
   <variable>RunConfiguration0-UseDyldImageSuffix</variable>
-  <value type="bool" >false</value>
+  <value type="bool">false</value>
  </data>
  <data>
   <variable>RunConfiguration0-UseTerminal</variable>
-  <value type="bool" >false</value>
+  <value type="bool">false</value>
+ </data>
+ <data>
+  <variable>RunConfiguration0-UserEnvironmentChanges</variable>
+  <valuelist type="QVariantList"/>
  </data>
  <data>
   <variable>RunConfiguration0-UserSetName</variable>
-  <value type="bool" >false</value>
+  <value type="bool">false</value>
+ </data>
+ <data>
+  <variable>RunConfiguration0-UserSetWorkingDirectory</variable>
+  <value type="bool">false</value>
+ </data>
+ <data>
+  <variable>RunConfiguration0-UserWorkingDirectory</variable>
+  <value type="QString"></value>
  </data>
  <data>
   <variable>RunConfiguration0-type</variable>
-  <value type="QString" >Qt4ProjectManager.Qt4RunConfiguration</value>
+  <value type="QString">Qt4ProjectManager.Qt4RunConfiguration</value>
  </data>
  <data>
   <variable>activeRunConfiguration</variable>
-  <value type="int" >0</value>
+  <value type="int">0</value>
  </data>
  <data>
   <variable>activebuildconfiguration</variable>
-  <value type="QString" >Debug</value>
+  <value type="QString">Debug</value>
  </data>
  <data>
   <variable>buildConfiguration-Debug</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Debug</value>
-   <value key="QtVersionId" type="int" >0</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Debug</value>
+   <value key="QtVersionId" type="int">0</value>
+   <value key="ToolChain" type="int">0</value>
+   <value key="addQDumper" type=""></value>
+   <value key="buildConfiguration" type="int">2</value>
   </valuemap>
  </data>
  <data>
   <variable>buildConfiguration-Release</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Release</value>
-   <value key="QtVersionId" type="int" >0</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Release</value>
+   <value key="QtVersionId" type="int">0</value>
+   <value key="addQDumper" type=""></value>
+   <value key="buildConfiguration" type="int">0</value>
   </valuemap>
  </data>
  <data>
   <variable>buildconfiguration-Debug-buildstep0</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Debug</value>
-   <valuelist key="abstractProcess.Environment" type="QVariantList" >
-    <value type="QString" >CVS_RSH=ssh</value>
-    <value type="QString" >DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-gqsQ0Uu3Eg,guid=d6155ff30c64590a574d63bf4a06f93f</value>
-    <value type="QString" >DESKTOP_SESSION=kde</value>
-    <value type="QString" >DESKTOP_STARTUP_ID=</value>
-    <value type="QString" >DISABLE_IMSETTINGS=1</value>
-    <value type="QString" >DISPLAY=:0.0</value>
-    <value type="QString" >DM_CONTROL=/var/run/xdmctl</value>
-    <value type="QString" >DRY_RUN=1</value>
-    <value type="QString" >GNOME_KEYRING_PID=2801</value>
-    <value type="QString" >GNOME_KEYRING_SOCKET=/tmp/keyring-K9iTL5/socket</value>
-    <value type="QString" >GPG_AGENT_INFO=/tmp/gpg-VCkJr8/S.gpg-agent:3061:1</value>
-    <value type="QString" >GS_LIB=</value>
-    <value type="QString" >GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/andrey/.gtkrc-2.0::/home/andrey/.kde/share/config/gtkrc-2.0</value>
-    <value type="QString" >GTK_IM_MODULE=gtk-im-context-simple</value>
-    <value type="QString" >GTK_RC_FILES=/etc/gtk/gtkrc:/home/andrey/.gtkrc::/home/andrey/.kde/share/config/gtkrc</value>
-    <value type="QString" >G_BROKEN_FILENAMES=1</value>
-    <value type="QString" >HISTSIZE=1000</value>
-    <value type="QString" >HOME=/home/andrey</value>
-    <value type="QString" >HOSTNAME=shadow888.localdomain</value>
-    <value type="QString" >KDEDIRS=/usr</value>
-    <value type="QString" >KDE_FULL_SESSION=true</value>
-    <value type="QString" >KDE_IS_PRELINKED=1</value>
-    <value type="QString" >KDE_MULTIHEAD=false</value>
-    <value type="QString" >KDE_SESSION_UID=500</value>
-    <value type="QString" >KDE_SESSION_VERSION=4</value>
-    <value type="QString" >LANG=bg_BG.UTF-8</value>
-    <value type="QString" >LD_LIBRARY_PATH=/opt/qtsdk-2009.02/lib64/qtcreator:</value>
-    <value type="QString" >LESSOPEN=|/usr/bin/lesspipe.sh %s</value>
-    <value type="QString" >LOGNAME=andrey</value>
-    <value type="QString" >MAIL=/var/spool/mail/andrey</value>
-    <value type="QString" >PATH=/opt/qtsdk-2009.02/qt/bin:/usr/lib64/qt-3.3/bin:/usr/kerberos/bin:/usr/lib64/ccache:/usr/local/bin:/usr/bin:/bin:/usr/games:/usr/local/sbin:/usr/sbin:/sbin:/home/andrey/bin</value>
-    <value type="QString" >PWD=/home/andrey</value>
-    <value type="QString" >QTDIR=/opt/qtsdk-2009.02/qt</value>
-    <value type="QString" >QTINC=/usr/lib64/qt-3.3/include</value>
-    <value type="QString" >QTLIB=/usr/lib64/qt-3.3/lib</value>
-    <value type="QString" >QT_PLUGIN_PATH=/home/andrey/.kde/lib64/kde4/plugins/:/usr/lib64/kde4/plugins/:/home/andrey/.kde/lib64/kde4/plugins/:/usr/lib64/kde4/plugins/</value>
-    <value type="QString" >SESSION_MANAGER=local/unix:@/tmp/.ICE-unix/3146,unix/unix:/tmp/.ICE-unix/3146</value>
-    <value type="QString" >SHELL=/bin/bash</value>
-    <value type="QString" >SHLVL=2</value>
-    <value type="QString" >SSH_AGENT_PID=2996</value>
-    <value type="QString" >SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass</value>
-    <value type="QString" >SSH_AUTH_SOCK=/tmp/ssh-uEUilK2803/agent.2803</value>
-    <value type="QString" >TERM=dumb</value>
-    <value type="QString" >USER=andrey</value>
-    <value type="QString" >WINDOWPATH=1</value>
-    <value type="QString" >XCURSOR_THEME=default</value>
-    <value type="QString" >XDG_DATA_DIRS=/usr/share/kde-settings/kde-profile/default/share:/usr/local/share:/usr/share</value>
-    <value type="QString" >XDG_MENU_PREFIX=kde4-</value>
-    <value type="QString" >XDG_SESSION_COOKIE=fa9babf94fe81a38aa18dba0496ba4db-1241971006.306919-348056039</value>
-    <value type="QString" >XDM_MANAGED=method=classic</value>
-    <value type="QString" >XMODIFIERS=@im=none</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Debug</value>
+   <valuelist key="abstractProcess.Environment" type="QVariantList">
+    <value type="QString">ALTERNATE_EDITOR=nano</value>
+    <value type="QString">ANT_HOME=/usr/share/ant</value>
+    <value type="QString">BROWSER=conkeror</value>
+    <value type="QString">CONFIG_PROTECT=/usr/share/X11/xkb</value>
+    <value type="QString">CONFIG_PROTECT_MASK=/etc/sandbox.d /etc/env.d/java/ /etc/fonts/fonts.conf /etc/gconf /etc/terminfo /etc/eselect/postgresql /etc/ca-certificates.conf /etc/texmf/web2c /etc/texmf/language.dat.d /etc/texmf/language.def.d /etc/texmf/updmap.d /etc/revdep-rebuild</value>
+    <value type="QString">CVS_RSH=ssh</value>
+    <value type="QString">DESKTOP_SESSION=LXDE</value>
+    <value type="QString">DISPLAY=:0.0</value>
+    <value type="QString">EDITOR=emacsclient -c</value>
+    <value type="QString">EMAIL=m00naticus@gmail.com</value>
+    <value type="QString">GDK_USE_XFT=1</value>
+    <value type="QString">GUILE_LOAD_PATH=/usr/share/guile/1.8</value>
+    <value type="QString">HG=/usr/bin/hg</value>
+    <value type="QString">HOME=/home/andrey2</value>
+    <value type="QString">INFOPATH=/usr/share/info:/usr/local/share/info:/usr/share/binutils-data/x86_64-pc-linux-gnu/2.20.1/info:/usr/share/gcc-data/x86_64-pc-linux-gnu/4.4.4/info:/usr/share/info/emacs-24</value>
+    <value type="QString">JAVAC=/etc/java-config-2/current-system-vm/bin/javac</value>
+    <value type="QString">JAVACC_HOME=/usr/share/javacc/</value>
+    <value type="QString">JAVA_HOME=/etc/java-config-2/current-system-vm</value>
+    <value type="QString">JDK_HOME=/etc/java-config-2/current-system-vm</value>
+    <value type="QString">LANG=bg_BG.UTF-8</value>
+    <value type="QString">LC_COLLATE=C</value>
+    <value type="QString">LC_CTYPE=bg_BG.UTF-8</value>
+    <value type="QString">LESS=-R -M --shift 5</value>
+    <value type="QString">LESSOPEN=|lesspipe.sh %s</value>
+    <value type="QString">LOGNAME=andrey2</value>
+    <value type="QString">MAIL=/var/mail/andrey2</value>
+    <value type="QString">MANPATH=/etc/java-config-2/current-system-vm/man:/usr/local/share/man:/usr/share/man:/usr/share/binutils-data/x86_64-pc-linux-gnu/2.20.1/man:/usr/share/gcc-data/x86_64-pc-linux-gnu/4.4.4/man:/etc/java-config/system-vm/man/:/usr/share/postgresql-8.4/man</value>
+    <value type="QString">NAME=Andrey Kotlarski</value>
+    <value type="QString">OPENGL_PROFILE=nvidia</value>
+    <value type="QString">ORBIT_SOCKETDIR=/tmp/orbit-andrey2</value>
+    <value type="QString">PAGER=/usr/bin/less</value>
+    <value type="QString">PATH=/usr/bin:/usr/local/bin:/usr/bin:/bin:/opt/bin:/usr/x86_64-pc-linux-gnu/gcc-bin/4.4.4:/usr/games/bin</value>
+    <value type="QString">PRELINK_PATH_MASK=/usr/lib64/libfreebl3.so:/usr/lib64/libnssdbm3.so:/usr/lib64/libsoftokn3.so</value>
+    <value type="QString">PWD=/home/andrey2</value>
+    <value type="QString">QTDIR=/usr/share/qt4</value>
+    <value type="QString">SAL_USE_VCLPLUGIN=gtk</value>
+    <value type="QString">SBCL_HOME=/usr/lib64/sbcl</value>
+    <value type="QString">SBCL_SOURCE_ROOT=/usr/lib64/sbcl/src</value>
+    <value type="QString">SHELL=/bin/bash</value>
+    <value type="QString">SHLVL=0</value>
+    <value type="QString">TERM=linux</value>
+    <value type="QString">USER=andrey2</value>
+    <value type="QString">XAUTHORITY=/home/andrey2/.Xauthority</value>
+    <value type="QString">XDG_CONFIG_DIRS=/etc/xdg</value>
+    <value type="QString">XDG_CONFIG_HOME=/home/andrey2/.config</value>
+    <value type="QString">XDG_CURRENT_DESKTOP=LXDE</value>
+    <value type="QString">XDG_DATA_DIRS=/usr/local/share:/usr/share</value>
+    <value type="QString">_JAVA_AWT_WM_NONREPARENTING=1</value>
+    <value type="QString">_LXSESSION_PID=10561</value>
    </valuelist>
-   <valuelist key="abstractProcess.arguments" type="QVariantList" >
-    <value type="QString" >/home/andrey/Programs/nTrainer2/nTrainer.pro</value>
-    <value type="QString" >-spec</value>
-    <value type="QString" >linux-g++-64</value>
-    <value type="QString" >-r</value>
-    <value type="QString" >CONFIG+=debug</value>
+   <valuelist key="abstractProcess.arguments" type="QVariantList">
+    <value type="QString">/home/andrey2/Programs/MyPrograms/neuroChess/grapeTrainer/nTrainer.pro</value>
+    <value type="QString">-spec</value>
+    <value type="QString">linux-g++</value>
+    <value type="QString">-r</value>
+    <value type="QString">CONFIG+=debug</value>
    </valuelist>
-   <value key="abstractProcess.command" type="QString" >/opt/qtsdk-2009.02/qt/bin/qmake</value>
-   <value key="abstractProcess.enabled" type="bool" >false</value>
-   <value key="abstractProcess.workingDirectory" type="QString" >/home/andrey/Programs/nTrainer2</value>
-   <value key="buildConfiguration" type="int" >2</value>
+   <value key="abstractProcess.command" type="QString">/usr/bin/qmake</value>
+   <value key="abstractProcess.enabled" type="bool">false</value>
+   <value key="abstractProcess.workingDirectory" type="QString">/home/andrey2/Programs/MyPrograms/neuroChess/grapeTrainer</value>
+   <value key="buildConfiguration" type=""></value>
   </valuemap>
  </data>
  <data>
   <variable>buildconfiguration-Debug-buildstep1</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Debug</value>
-   <valuelist key="abstractProcess.Environment" type="QVariantList" >
-    <value type="QString" >CVS_RSH=ssh</value>
-    <value type="QString" >DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-gqsQ0Uu3Eg,guid=d6155ff30c64590a574d63bf4a06f93f</value>
-    <value type="QString" >DESKTOP_SESSION=kde</value>
-    <value type="QString" >DESKTOP_STARTUP_ID=</value>
-    <value type="QString" >DISABLE_IMSETTINGS=1</value>
-    <value type="QString" >DISPLAY=:0.0</value>
-    <value type="QString" >DM_CONTROL=/var/run/xdmctl</value>
-    <value type="QString" >DRY_RUN=1</value>
-    <value type="QString" >GNOME_KEYRING_PID=2801</value>
-    <value type="QString" >GNOME_KEYRING_SOCKET=/tmp/keyring-K9iTL5/socket</value>
-    <value type="QString" >GPG_AGENT_INFO=/tmp/gpg-VCkJr8/S.gpg-agent:3061:1</value>
-    <value type="QString" >GS_LIB=</value>
-    <value type="QString" >GTK2_RC_FILES=/etc/gtk-2.0/gtkrc:/home/andrey/.gtkrc-2.0::/home/andrey/.kde/share/config/gtkrc-2.0</value>
-    <value type="QString" >GTK_IM_MODULE=gtk-im-context-simple</value>
-    <value type="QString" >GTK_RC_FILES=/etc/gtk/gtkrc:/home/andrey/.gtkrc::/home/andrey/.kde/share/config/gtkrc</value>
-    <value type="QString" >G_BROKEN_FILENAMES=1</value>
-    <value type="QString" >HISTSIZE=1000</value>
-    <value type="QString" >HOME=/home/andrey</value>
-    <value type="QString" >HOSTNAME=shadow888.localdomain</value>
-    <value type="QString" >KDEDIRS=/usr</value>
-    <value type="QString" >KDE_FULL_SESSION=true</value>
-    <value type="QString" >KDE_IS_PRELINKED=1</value>
-    <value type="QString" >KDE_MULTIHEAD=false</value>
-    <value type="QString" >KDE_SESSION_UID=500</value>
-    <value type="QString" >KDE_SESSION_VERSION=4</value>
-    <value type="QString" >LANG=bg_BG.UTF-8</value>
-    <value type="QString" >LD_LIBRARY_PATH=/opt/qtsdk-2009.02/lib64/qtcreator:</value>
-    <value type="QString" >LESSOPEN=|/usr/bin/lesspipe.sh %s</value>
-    <value type="QString" >LOGNAME=andrey</value>
-    <value type="QString" >MAIL=/var/spool/mail/andrey</value>
-    <value type="QString" >PATH=/opt/qtsdk-2009.02/qt/bin:/usr/lib64/qt-3.3/bin:/usr/kerberos/bin:/usr/lib64/ccache:/usr/local/bin:/usr/bin:/bin:/usr/games:/usr/local/sbin:/usr/sbin:/sbin:/home/andrey/bin</value>
-    <value type="QString" >PWD=/home/andrey</value>
-    <value type="QString" >QTDIR=/opt/qtsdk-2009.02/qt</value>
-    <value type="QString" >QTINC=/usr/lib64/qt-3.3/include</value>
-    <value type="QString" >QTLIB=/usr/lib64/qt-3.3/lib</value>
-    <value type="QString" >QT_PLUGIN_PATH=/home/andrey/.kde/lib64/kde4/plugins/:/usr/lib64/kde4/plugins/:/home/andrey/.kde/lib64/kde4/plugins/:/usr/lib64/kde4/plugins/</value>
-    <value type="QString" >SESSION_MANAGER=local/unix:@/tmp/.ICE-unix/3146,unix/unix:/tmp/.ICE-unix/3146</value>
-    <value type="QString" >SHELL=/bin/bash</value>
-    <value type="QString" >SHLVL=2</value>
-    <value type="QString" >SSH_AGENT_PID=2996</value>
-    <value type="QString" >SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass</value>
-    <value type="QString" >SSH_AUTH_SOCK=/tmp/ssh-uEUilK2803/agent.2803</value>
-    <value type="QString" >TERM=dumb</value>
-    <value type="QString" >USER=andrey</value>
-    <value type="QString" >WINDOWPATH=1</value>
-    <value type="QString" >XCURSOR_THEME=default</value>
-    <value type="QString" >XDG_DATA_DIRS=/usr/share/kde-settings/kde-profile/default/share:/usr/local/share:/usr/share</value>
-    <value type="QString" >XDG_MENU_PREFIX=kde4-</value>
-    <value type="QString" >XDG_SESSION_COOKIE=fa9babf94fe81a38aa18dba0496ba4db-1241971006.306919-348056039</value>
-    <value type="QString" >XDM_MANAGED=method=classic</value>
-    <value type="QString" >XMODIFIERS=@im=none</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Debug</value>
+   <valuelist key="abstractProcess.Environment" type="QVariantList">
+    <value type="QString">ALTERNATE_EDITOR=nano</value>
+    <value type="QString">ANT_HOME=/usr/share/ant</value>
+    <value type="QString">BROWSER=conkeror</value>
+    <value type="QString">CONFIG_PROTECT=/usr/share/X11/xkb</value>
+    <value type="QString">CONFIG_PROTECT_MASK=/etc/sandbox.d /etc/env.d/java/ /etc/fonts/fonts.conf /etc/gconf /etc/terminfo /etc/eselect/postgresql /etc/ca-certificates.conf /etc/texmf/web2c /etc/texmf/language.dat.d /etc/texmf/language.def.d /etc/texmf/updmap.d /etc/revdep-rebuild</value>
+    <value type="QString">CVS_RSH=ssh</value>
+    <value type="QString">DESKTOP_SESSION=LXDE</value>
+    <value type="QString">DISPLAY=:0.0</value>
+    <value type="QString">EDITOR=emacsclient -c</value>
+    <value type="QString">EMAIL=m00naticus@gmail.com</value>
+    <value type="QString">GDK_USE_XFT=1</value>
+    <value type="QString">GUILE_LOAD_PATH=/usr/share/guile/1.8</value>
+    <value type="QString">HG=/usr/bin/hg</value>
+    <value type="QString">HOME=/home/andrey2</value>
+    <value type="QString">INFOPATH=/usr/share/info:/usr/local/share/info:/usr/share/binutils-data/x86_64-pc-linux-gnu/2.20.1/info:/usr/share/gcc-data/x86_64-pc-linux-gnu/4.4.4/info:/usr/share/info/emacs-24</value>
+    <value type="QString">JAVAC=/etc/java-config-2/current-system-vm/bin/javac</value>
+    <value type="QString">JAVACC_HOME=/usr/share/javacc/</value>
+    <value type="QString">JAVA_HOME=/etc/java-config-2/current-system-vm</value>
+    <value type="QString">JDK_HOME=/etc/java-config-2/current-system-vm</value>
+    <value type="QString">LANG=bg_BG.UTF-8</value>
+    <value type="QString">LC_COLLATE=C</value>
+    <value type="QString">LC_CTYPE=bg_BG.UTF-8</value>
+    <value type="QString">LESS=-R -M --shift 5</value>
+    <value type="QString">LESSOPEN=|lesspipe.sh %s</value>
+    <value type="QString">LOGNAME=andrey2</value>
+    <value type="QString">MAIL=/var/mail/andrey2</value>
+    <value type="QString">MANPATH=/etc/java-config-2/current-system-vm/man:/usr/local/share/man:/usr/share/man:/usr/share/binutils-data/x86_64-pc-linux-gnu/2.20.1/man:/usr/share/gcc-data/x86_64-pc-linux-gnu/4.4.4/man:/etc/java-config/system-vm/man/:/usr/share/postgresql-8.4/man</value>
+    <value type="QString">NAME=Andrey Kotlarski</value>
+    <value type="QString">OPENGL_PROFILE=nvidia</value>
+    <value type="QString">ORBIT_SOCKETDIR=/tmp/orbit-andrey2</value>
+    <value type="QString">PAGER=/usr/bin/less</value>
+    <value type="QString">PATH=/usr/bin:/usr/local/bin:/usr/bin:/bin:/opt/bin:/usr/x86_64-pc-linux-gnu/gcc-bin/4.4.4:/usr/games/bin</value>
+    <value type="QString">PRELINK_PATH_MASK=/usr/lib64/libfreebl3.so:/usr/lib64/libnssdbm3.so:/usr/lib64/libsoftokn3.so</value>
+    <value type="QString">PWD=/home/andrey2</value>
+    <value type="QString">QTDIR=/usr/share/qt4</value>
+    <value type="QString">SAL_USE_VCLPLUGIN=gtk</value>
+    <value type="QString">SBCL_HOME=/usr/lib64/sbcl</value>
+    <value type="QString">SBCL_SOURCE_ROOT=/usr/lib64/sbcl/src</value>
+    <value type="QString">SHELL=/bin/bash</value>
+    <value type="QString">SHLVL=0</value>
+    <value type="QString">TERM=linux</value>
+    <value type="QString">USER=andrey2</value>
+    <value type="QString">XAUTHORITY=/home/andrey2/.Xauthority</value>
+    <value type="QString">XDG_CONFIG_DIRS=/etc/xdg</value>
+    <value type="QString">XDG_CONFIG_HOME=/home/andrey2/.config</value>
+    <value type="QString">XDG_CURRENT_DESKTOP=LXDE</value>
+    <value type="QString">XDG_DATA_DIRS=/usr/local/share:/usr/share</value>
+    <value type="QString">_JAVA_AWT_WM_NONREPARENTING=1</value>
+    <value type="QString">_LXSESSION_PID=10561</value>
    </valuelist>
-   <valuelist key="abstractProcess.arguments" type="QVariantList" >
-    <value type="QString" >-w</value>
+   <value key="abstractProcess.IgnoreReturnValue" type="bool">false</value>
+   <valuelist key="abstractProcess.arguments" type="QVariantList">
+    <value type="QString">-w</value>
    </valuelist>
-   <value key="abstractProcess.command" type="QString" >/usr/bin/make</value>
-   <value key="abstractProcess.enabled" type="bool" >true</value>
-   <value key="abstractProcess.workingDirectory" type="QString" >/home/andrey/Programs/nTrainer2</value>
+   <value key="abstractProcess.command" type="QString">/usr/bin/make</value>
+   <value key="abstractProcess.enabled" type="bool">true</value>
+   <value key="abstractProcess.workingDirectory" type="QString">/home/andrey2/Programs/MyPrograms/neuroChess/grapeTrainer</value>
   </valuemap>
  </data>
  <data>
   <variable>buildconfiguration-Debug-cleanstep0</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Debug</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Debug</value>
+   <value key="cleanConfig" type="bool">true</value>
+   <valuelist key="makeargs" type="QVariantList">
+    <value type="QString">clean</value>
+   </valuelist>
   </valuemap>
  </data>
  <data>
   <variable>buildconfiguration-Release-buildstep0</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Release</value>
-   <value key="buildConfiguration" type="int" >0</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Release</value>
+   <value key="buildConfiguration" type=""></value>
   </valuemap>
  </data>
  <data>
   <variable>buildconfiguration-Release-buildstep1</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Release</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Release</value>
   </valuemap>
  </data>
  <data>
   <variable>buildconfiguration-Release-cleanstep0</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" >Release</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString">Release</value>
   </valuemap>
  </data>
  <data>
   <variable>buildconfigurations</variable>
-  <valuelist type="QVariantList" >
-   <value type="QString" >Debug</value>
-   <value type="QString" >Release</value>
+  <valuelist type="QVariantList">
+   <value type="QString">Debug</value>
+   <value type="QString">Release</value>
   </valuelist>
  </data>
  <data>
   <variable>buildstep0</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" ></value>
-   <value key="mkspec" type="QString" ></value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString"></value>
+   <value key="mkspec" type="QString"></value>
   </valuemap>
  </data>
  <data>
   <variable>buildstep1</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" ></value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString"></value>
   </valuemap>
  </data>
  <data>
   <variable>buildsteps</variable>
-  <valuelist type="QVariantList" >
-   <value type="QString" >trolltech.qt4projectmanager.qmake</value>
-   <value type="QString" >trolltech.qt4projectmanager.make</value>
+  <valuelist type="QVariantList">
+   <value type="QString">trolltech.qt4projectmanager.qmake</value>
+   <value type="QString">trolltech.qt4projectmanager.make</value>
   </valuelist>
  </data>
  <data>
   <variable>cleanstep0</variable>
-  <valuemap type="QVariantMap" >
-   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString" ></value>
-   <value key="clean" type="bool" >true</value>
+  <valuemap type="QVariantMap">
+   <value key="ProjectExplorer.BuildConfiguration.DisplayName" type="QString"></value>
+   <value key="clean" type="bool">true</value>
   </valuemap>
  </data>
  <data>
   <variable>cleansteps</variable>
-  <valuelist type="QVariantList" >
-   <value type="QString" >trolltech.qt4projectmanager.make</value>
+  <valuelist type="QVariantList">
+   <value type="QString">trolltech.qt4projectmanager.make</value>
   </valuelist>
  </data>
  <data>
   <variable>defaultFileEncoding</variable>
-  <value type="QByteArray" >System</value>
+  <value type="QByteArray">System</value>
  </data>
  <data>
   <variable>project</variable>
-  <valuemap type="QVariantMap" />
+  <valuemap type="QVariantMap"/>
  </data>
 </qtcreator>
