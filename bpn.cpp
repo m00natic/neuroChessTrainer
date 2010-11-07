@@ -6,8 +6,8 @@
 #include "bpn.h"
 #include "bpnlayer.h"
 
-#define MAXTHREADS 1		// >=1
-LayerThread *li[MAXTHREADS + 1];
+#define MAXTHREADS 1		// maximum number of additional threads, should be # cores -1
+LayerThread *li[MAXTHREADS + 1]; // thread info
 
 BPN::~BPN() {
   if(size >0) {
@@ -58,71 +58,62 @@ BPN::BPN(unsigned *sizes, bool *biases, outFunction *functions, unsigned layersN
 }
 
 BPN::BPN(char* file) {
+  unsigned i;
+
+  for(i=0; i <= MAXTHREADS; ++i) {
+    li[i] = new LayerThread;
+  }
+
   std::ifstream fin;
-  //std::string ignore;
   fin.open(file, std::ifstream::in);
 
-  //ignore = readString(fin);
   readString(fin);
   fin>>initial_scale;
 
-  //ignore = readString(fin);
   readString(fin);
   fin>>eta;
 
-  //ignore = readString(fin);
   readString(fin);
   fin>>alpha;
 
-  //ignore = readString(fin);
   readString(fin);
   fin>>scale_factor;
 
-  //ignore = readString(fin);
   readString(fin);
   fin>>size;
 
   if(size >0) {
-    layers = new bpnLayer*[size];
-
-    unsigned i, f, layersize, prevsize=0;
+    unsigned f, layersize, prevsize=0;
     bool bias;
 
     //  input layer - no bias
-    //ignore = readString(fin);
-    //ignore = readString(fin);
     readString(fin);
     readString(fin);
     fin>>layersize;
 
-    //ignore = readString(fin);
     readString(fin);
     fin>>bias;
 
-    //ignore = readString(fin);
     readString(fin);
     fin>>f;
 
     bias = false;
-    layers[0] = new bpnLayer(layersize, prevsize, bias, (outFunction)f);
+    layers = new bpnLayer*[size];
+    layers[0] = new bpnLayer(layersize, prevsize, bias, (outFunction) f);
     prevsize = layersize;
 
     for(i=1; i<size; ++i) {  //  itterate all layer above input
-      //ignore = readString(fin);
-      //ignore = readString(fin);
       readString(fin);
       readString(fin);
       fin>>layersize;
 
-      //ignore = readString(fin);
       readString(fin);
       fin>>bias;
 
-      //ignore = readString(fin);
       readString(fin);
       fin>>f;
 
-      layers[i] = new bpnLayer(layersize, prevsize, bias, (outFunction)f);
+      layers[i] = new bpnLayer(layersize, prevsize, bias, (outFunction) f);
       prevsize = layersize;
     }
 
@@ -149,10 +140,6 @@ BPN::BPN(char* file) {
   }
 
   fin.close();
-
-  for(unsigned i=0; i <= MAXTHREADS; ++i) {
-    li[i] = new LayerThread;
-  }
 }
 
 void BPN::LoadLayer(bpnLayer* layer, std::ifstream& fin) {
@@ -291,25 +278,26 @@ void BPN::InitializeWeights() {
 
 bool BPN::Train(double *input, double* output) {
   Run(input);
-
   double (*derivate) (double); //  pointer to derivate funtion
 
   switch(layers[size-1]->func) {
   case sigmoid:
-    derivate = &DerivateSigmoid;
+    derivate = DerivateSigmoid;
     break;
   case sigmoid2:
-    derivate = &DerivateSigmoid2;
+    derivate = DerivateSigmoid2;
     break;
   default:
-    derivate = &DerivateLinear;
+    derivate = DerivateLinear;
   }
 
   for(unsigned i=0; i<layers[size -1]->size; ++i) { //  fill output errors
-    layers[size -1]->errors[i] = (double)(*derivate)(layers[size -1]->products[i]/scale_factor)*(output[i] - layers[size -1]->products[i])/scale_factor;
+    layers[size -1]->errors[i] = (double)(*derivate)(layers[size -1]->products[i]/scale_factor)
+      * (output[i] - layers[size -1]->products[i])/scale_factor;
 
     for(unsigned j=0; j<layers[size-2]->size; ++j) {
-      layers[size -1]->deltas[i][j] = layers[size-2]->products[j]*eta*layers[size-1]->errors[i] + alpha*layers[size -1]->deltas[i][j];
+      layers[size -1]->deltas[i][j] = layers[size-2]->products[j]*eta*layers[size-1]->errors[i]
+	+ alpha*layers[size -1]->deltas[i][j];
     }
   }
 
@@ -500,7 +488,7 @@ void* BPN::UnitThreadFuncBias (void *arg) {
     lt->bp->layers[layer]->products[j] = (*lt->apply)(net);
   }
 
-  return (void*) 0;
+  return (void*) true;
 }
 
 void* BPN::UnitThreadFunc (void *arg) {
@@ -518,7 +506,7 @@ void* BPN::UnitThreadFunc (void *arg) {
     lt->bp->layers[layer]->products[j] = (*lt->apply)(net);
   }
 
-  return (void*) 0;
+  return (void*) true;
 }
 
 void* BPN::UnitThreadFuncBiasScale (void *arg) {
@@ -538,7 +526,7 @@ void* BPN::UnitThreadFuncBiasScale (void *arg) {
     lt->bp->layers[layer]->products[j] = (*lt->apply)(net) * lt->bp->scale_factor;
   }
 
-  return (void*) 0;
+  return (void*) true;
 }
 
 void* BPN::UnitThreadFuncScale (void *arg) {
@@ -557,245 +545,182 @@ void* BPN::UnitThreadFuncScale (void *arg) {
     lt->bp->layers[layer]->products[j] = (*lt->apply)(net) * lt->bp->scale_factor;
   }
 
-  return (void*) 0;
+  return (void*) true;
+}
+
+bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)(void*)) {
+  unsigned j, chunk, nthreads;
+  pthread_t thread_id[MAXTHREADS];
+  bool retval, ok = true;
+
+  // determine actual number of additional threads to spawn
+  if (layers[layer]->size > MAXTHREADS) {
+    nthreads = MAXTHREADS;
+    chunk = layers[layer]->size / (MAXTHREADS+1);
+  }
+  else {
+    nthreads = layers[layer]->size - 1;
+    chunk = 1;
+  }
+
+  unsigned prev_end = 0;
+  for(j=0; j<nthreads; ++j) {	// create threads
+    li[j]->layer = layer;
+    li[j]->apply = apply;
+    li[j]->start = prev_end;	//j*chunk
+    prev_end += chunk;
+    li[j]->end = prev_end;	//(j+1)*chunk
+    li[j]->bp = this;
+
+    pthread_create(&thread_id[j], NULL, thrFunc, li[j]);
+  }
+
+  // finish what's left in the main thread
+  if (prev_end < layers[layer]->size) {	// li[nthreads]->start < li[nthreads]->end
+    li[nthreads]->start = prev_end; //nthreads*chunk
+    li[nthreads]->end = layers[layer]->size;
+    li[nthreads]->layer = layer;
+    li[nthreads]->apply = apply;
+    li[nthreads]->bp = this;
+
+    retval = (*thrFunc)(li[nthreads]);
+    ok = ok && retval;
+  }
+
+  for(j=0; j<nthreads; ++j) {
+    pthread_join(thread_id[j], (void**) &retval);
+    ok = ok && retval;
+  }
+
+  return ok;
 }
 
 // threaded version
 void BPN::Run() {//  assume that input is already placed in the first layer
-  unsigned i, j, chunk, nthreads;
   double (*apply) (double); //  pointer to output funtion
-  pthread_t thread_id[MAXTHREADS];
 
-  for(i=1; i<size-1; ++i) { //  for each layer above input
+  for(unsigned i=1; i<size-1; ++i) { //  for each layer above input
     //  determine output function before iterating through units - it's always same function for the whole layer
     switch(layers[i]->func) {
     case sigmoid:
-      apply = &ApplySigmoid;
+      apply = ApplySigmoid;
       break;
     case sigmoid2:
-      apply = &ApplySigmoid2;
+      apply = ApplySigmoid2;
       break;
     default:
-      apply = &ApplyLinear;
+      apply = ApplyLinear;
     }
 
-    if (layers[i]->size > MAXTHREADS) {
-      nthreads = MAXTHREADS;
-      chunk = layers[i]->size / (MAXTHREADS+1);
-    }
-    else {
-      nthreads = layers[i]->size - 1;
-      chunk = 1;
-    }
-
-    if(layers[i]->bias) {
-      for(j=0; j<nthreads; ++j) {
-	li[j]->layer = i;
-	li[j]->apply = apply;
-	li[j]->start = j*chunk;
-	li[j]->end = (j+1)*chunk;
-	li[j]->bp = this;
-
-	pthread_create(&thread_id[j], NULL, UnitThreadFuncBias, li[j]);
-      }
-
-      li[nthreads]->start = nthreads*chunk;
-      li[nthreads]->end = layers[i]->size;
-
-      if (li[nthreads]->start < li[nthreads]->end) {
-	li[nthreads]->layer = i;
-	li[nthreads]->apply = apply;
-	li[nthreads]->bp = this;
-
-        UnitThreadFuncBias(li[nthreads]);
-      }
-    }
-    else {
-      for(j=0; j<nthreads; ++j) {
-	li[j]->layer = i;
-	li[j]->apply = apply;
-	li[j]->start = j*chunk;
-	li[j]->end = (j+1)*chunk;
-	li[j]->bp = this;
-
-	pthread_create(&thread_id[j], NULL, UnitThreadFunc, li[j]);
-      }
-
-      li[nthreads]->start = nthreads*chunk;
-      li[nthreads]->end = layers[i]->size;
-
-      if (li[nthreads]->start < li[nthreads]->end) {
-	li[nthreads]->layer = i;
-	li[nthreads]->apply = apply;
-	li[nthreads]->bp = this;
-
-	UnitThreadFunc(li[nthreads]);
-      }
-    }
-
-    for(j=0; j<nthreads; ++j) {
-      pthread_join(thread_id[j], NULL);
-    }
+    if(layers[i]->bias)
+      DoThreading(i, apply, UnitThreadFuncBias);
+    else
+      DoThreading(i, apply, UnitThreadFunc);
   }
 
   //  same for output layer - though add scale factor
   switch(layers[size-1]->func) {
   case sigmoid:
-    apply = &ApplySigmoid;
+    apply = ApplySigmoid;
     break;
   case sigmoid2:
-    apply = &ApplySigmoid2;
+    apply = ApplySigmoid2;
     break;
   default:
-    apply = &ApplyLinear;
+    apply = ApplyLinear;
   }
 
-  if (layers[i]->size > MAXTHREADS) {
-    nthreads = MAXTHREADS;
-    chunk = layers[i]->size / (MAXTHREADS+1);
-  }
-  else {
-    nthreads = layers[i]->size - 1;
-    chunk = 1;
-  }
-
-  if(layers[size-1]->bias) {
-    for(j=0; j<nthreads; ++j) {
-      li[j]->layer = size-1;
-      li[j]->apply = apply;
-      li[j]->start = j*chunk;
-      li[j]->end = (j+1)*chunk;
-      li[j]->bp = this;
-
-      pthread_create(&thread_id[j], NULL, UnitThreadFuncBiasScale, li[j]);
-    }
-
-    li[nthreads]->start = nthreads*chunk;
-    li[nthreads]->end = layers[size-1]->size;
-
-    if (li[nthreads]->start < li[nthreads]->end) {
-      li[nthreads]->layer = size-1;
-      li[nthreads]->apply = apply;
-      li[j]->bp = this;
-
-      UnitThreadFuncBiasScale(li[nthreads]);
-    }
-  }
-  else {
-    for(j=0; j<nthreads; ++j) {
-      li[j]->layer = size-1;
-      li[j]->apply = apply;
-      li[j]->start = j*chunk;
-      li[j]->end = (j+1)*chunk;
-      li[j]->bp = this;
-
-      pthread_create(&thread_id[j], NULL, UnitThreadFuncScale, li[j]);
-    }
-
-    li[nthreads]->start = nthreads*chunk;
-    li[nthreads]->end = layers[size-1]->size;
-
-    if (li[nthreads]->start < li[nthreads]->end) {
-      li[nthreads]->layer = size-1;
-      li[nthreads]->apply = apply;
-      li[j]->bp = this;
-
-      UnitThreadFuncScale(li[nthreads]);
-    }
-  }
-
-  for(j=0; j<nthreads; ++j) {
-    pthread_join(thread_id[j], NULL);
-  }
+  if(layers[size-1]->bias)
+    DoThreading(size-1, apply, UnitThreadFuncBiasScale);
+  else
+    DoThreading(size-1, apply, UnitThreadFuncScale);
 }
 
 /*
-  void BPN::Run() { //  assume that input is already placed in the first layer
+void BPN::Run() { //  assume that input is already placed in the first layer
   unsigned i, j, k;
   double net;
   double (*apply) (double); //  pointer to output funtion
 
   for(i=1; i<size-1; ++i) {  //  for each layer above input
-  //  determine output function before iterating through units - it's always same function for the whole layer
-  switch(layers[i]->func) {
-  case sigmoid:
-  apply = &ApplySigmoid;
-  break;
-  case sigmoid2:
-  apply = &ApplySigmoid2;
-  break;
-  default:
-  apply = &ApplyLinear;
-  }
+    //  determine output function before iterating through units - it's always same function for the whole layer
+    switch(layers[i]->func) {
+    case sigmoid:
+      apply = ApplySigmoid;
+      break;
+    case sigmoid2:
+      apply = ApplySigmoid2;
+      break;
+    default:
+      apply = ApplyLinear;
+    }
 
-  if(layers[i]->bias) {
-  for(j=0; j<layers[i]->size; ++j) {  //  for each unit - computate product
-  net = 0;
+    if(layers[i]->bias) {
+      for(j=0; j<layers[i]->size; ++j) {  //  for each unit - compute product
+	net = 0;
 
-  for(k=0; k<layers[i]->lowerSize; ++k) {
-  net += (double)layers[i]->weights[j][k]*layers[i-1]->products[k];
-  }
+	for(k=0; k<layers[i]->lowerSize; ++k) {
+	  net += (double)layers[i]->weights[j][k]*layers[i-1]->products[k];
+	}
 
-  net += layers[i]->biases[j];
+	net += layers[i]->biases[j];
 
-  layers[i]->products[j] = (*apply)(net);
-  }
-  }
-  else {
-  for(j=0; j<layers[i]->size; ++j) {  //  for each unit - compute product
-  net = 0;
+	layers[i]->products[j] = (*apply)(net);
+      }
+    }
+    else {
+      for(j=0; j<layers[i]->size; ++j) {  //  for each unit - compute product
+	net = 0;
 
-  for(k=0; k<layers[i]->lowerSize; ++k) {
-  net += layers[i]->weights[j][k]*layers[i-1]->products[k];
-  }
+	for(k=0; k<layers[i]->lowerSize; ++k) {
+	  net += layers[i]->weights[j][k]*layers[i-1]->products[k];
+	}
 
-  layers[i]->products[j] = (*apply)(net);
-  }
-  }
+	layers[i]->products[j] = (*apply)(net);
+      }
+    }
   }
 
   //  same for output layer - though add scale factor
   switch(layers[size-1]->func) {
   case sigmoid:
-  apply = &ApplySigmoid;
-  break;
+    apply = ApplySigmoid;
+    break;
   case sigmoid2:
-  apply = &ApplySigmoid2;
-  break;
+    apply = ApplySigmoid2;
+    break;
   default:
-  apply = &ApplyLinear;
+    apply = ApplyLinear;
   }
 
   if(layers[size-1]->bias) {
-  for(j=0; j<layers[size-1]->size; ++j) {  //  for each unit - computate product
-  net = 0;
+    for(j=0; j<layers[size-1]->size; ++j) {  //  for each unit - compute product
+      net = 0;
 
-  for(k=0; k<layers[size-1]->lowerSize; ++k) {
-  net += (double)layers[size-1]->weights[j][k]*layers[size-2]->products[k];
-  }
+      for(k=0; k<layers[size-1]->lowerSize; ++k) {
+	net += (double)layers[size-1]->weights[j][k]*layers[size-2]->products[k];
+      }
 
-  net += layers[size-1]->biases[j];
+      net += layers[size-1]->biases[j];
 
-  layers[size-1]->products[j] = (*apply)(net)*scale_factor;
-  }
+      layers[size-1]->products[j] = (*apply)(net)*scale_factor;
+    }
   }
   else {
-  for(j=0; j<layers[size-1]->size; ++j) {  //  for each unit - computate product
-  net = 0;
+    for(j=0; j<layers[size-1]->size; ++j) {  //  for each unit - compute product
+      net = 0;
 
-  for(k=0; k<layers[size-1]->lowerSize; ++k) {
-  net += (double)layers[size-1]->weights[j][k]*layers[size-2]->products[k];
-  }
+      for(k=0; k<layers[size-1]->lowerSize; ++k) {
+	net += (double)layers[size-1]->weights[j][k]*layers[size-2]->products[k];
+      }
 
-  layers[size-1]->products[j] = (*apply)(net)*scale_factor;
+      layers[size-1]->products[j] = (*apply)(net)*scale_factor;
+    }
   }
-  }
-  }
+}
 */
-
 bool BPN::Train(char* fen) {
   Run(fen);
-
   double (*derivate) (double); //  pointer to derivate funtion
 
   switch(layers[size-1]->func) {
@@ -873,96 +798,29 @@ void* BPN::UnitThreadFuncRenew (void *arg) {
 }
 
 bool BPN::Train() {		// threaded version
-  unsigned i, j, chunk, nthreads;
+  unsigned i;
   double (*derivate) (double); //  pointer to derivate funtion
-  pthread_t thread_id[MAXTHREADS];
-  bool retval, ok = true;
+  bool ok;
 
   for(i=size-2; i>0; --i) {   //  compute errors and weights' changes - itterate layers from top to bottom
     //  determine derivate function before iterating through units - it's always same derivate for the whole layer
     switch(layers[i]->func) {
     case sigmoid:
-      derivate = &DerivateSigmoid;
+      derivate = DerivateSigmoid;
       break;
     case sigmoid2:
-      derivate = &DerivateSigmoid2;
+      derivate = DerivateSigmoid2;
       break;
     default:
-      derivate = &DerivateLinear;
+      derivate = DerivateLinear;
     }
 
-    if (layers[i]->size > MAXTHREADS) {
-      nthreads = MAXTHREADS;
-      chunk = layers[i]->size / (MAXTHREADS+1);
-    }
-    else {
-      nthreads = layers[i]->size - 1;
-      chunk = 1;
-    }
-
-    for(j=0; j<nthreads; ++j) {
-      li[j]->layer = i;
-      li[j]->apply = derivate;
-      li[j]->start = j*chunk;
-      li[j]->end = (j+1)*chunk;
-      li[j]->bp = this;
-
-      pthread_create(&thread_id[j], NULL, UnitThreadFuncTrain, li[j]);
-    }
-
-    li[nthreads]->start = nthreads*chunk;
-    li[nthreads]->end = layers[i]->size;
-
-    if (li[nthreads]->start < li[nthreads]->end) {
-      li[nthreads]->layer = i;
-      li[nthreads]->apply = derivate;
-      li[nthreads]->bp = this;
-
-      UnitThreadFuncTrain(li[nthreads]);
-    }
-
-    for(j=0; j<nthreads; ++j) {
-      pthread_join(thread_id[j], (void **) &retval);
-      ok = ok && retval;
-    }
-
+    ok = DoThreading(i, derivate, UnitThreadFuncTrain);
     if (!ok) return false;
   }
 
   for(i=1; i<size; ++i) {  //  for each layer (above input)
-    if (layers[i]->size > MAXTHREADS) {
-      nthreads = MAXTHREADS;
-      chunk = layers[i]->size / (MAXTHREADS+1);
-    }
-    else {
-      nthreads = layers[i]->size - 1;
-      chunk = 1;
-    }
-
-    for(j=0; j<nthreads; ++j) {
-      li[j]->layer = i;
-      li[j]->start = j*chunk;
-      li[j]->end = (j+1)*chunk;
-      li[j]->bp = this;
-
-      pthread_create(&thread_id[j], NULL, UnitThreadFuncRenew, li[j]);
-    }
-
-    li[nthreads]->start = nthreads*chunk;
-    li[nthreads]->end = layers[i]->size;
-
-    if (li[nthreads]->start < li[nthreads]->end) {
-      li[nthreads]->layer = i;
-      li[nthreads]->bp = this;
-
-      UnitThreadFuncRenew(li[nthreads]);
-    }
-
-    for(j=0; j<nthreads; ++j) {
-      pthread_join(thread_id[j], (void **) &retval);
-      ok = ok && retval;
-    }
-
+    ok = DoThreading(i, NULL, UnitThreadFuncRenew);
     if (!ok) return false;
   }
 
@@ -970,65 +828,63 @@ bool BPN::Train() {		// threaded version
 }
 
 /*
-  bool BPN::Train() {
+bool BPN::Train() {
   unsigned i, j, k;
   double err;
-
   double (*derivate) (double); //  pointer to derivate funtion
 
   for(i=size-2; i>0; --i) {   //  compute errors and weights' changes - itterate layers from top to bottom
-  //  determine derivate function before iterating through units - it's always same derivate for the whole layer
-  switch(layers[i]->func) {
-  case sigmoid:
-  derivate = &DerivateSigmoid;
-  break;
-  case sigmoid2:
-  derivate = &DerivateSigmoid2;
-  break;
-  default:
-  derivate = &DerivateLinear;
-  }
+    //  determine derivate function before iterating through units - it's always same derivate for the whole layer
+    switch(layers[i]->func) {
+    case sigmoid:
+      derivate = DerivateSigmoid;
+      break;
+    case sigmoid2:
+      derivate = DerivateSigmoid2;
+      break;
+    default:
+      derivate = DerivateLinear;
+    }
 
-  for(j=0; j<layers[i]->size; ++j) {  //  for each unit in the layer
-  err = 0.0f;
+    for(j=0; j<layers[i]->size; ++j) {  //  for each unit in the layer
+      err = 0.0f;
+
+      try {
+	for(k=0; k<layers[i+1]->size; ++k) {   //  for each unit in the upper layer
+	  err += layers[i+1]->errors[k]*layers[i+1]->weights[k][j];
+	}
+
+	layers[i]->errors[j] = (double)(*derivate)(layers[i]->products[j])*err;  //  compute error
+
+	for(k=0; k<layers[i-1]->size; ++k) {
+	  layers[i]->deltas[j][k] = layers[i-1]->products[k]*eta*layers[i]->errors[j] + alpha*layers[i]->deltas[j][k];
+	  //layers[i]->weights[j][k] += layers[i]->deltas[j][k];  //  can't do it here because of the lower layer errors
+	}
+      }
+      catch(std::exception ex) {
+	return false;
+      }
+    }
+  }
 
   try {
-  for(k=0; k<layers[i+1]->size; ++k) {   //  for each unit in the upper layer
-  err += layers[i+1]->errors[k]*layers[i+1]->weights[k][j];
-  }
-
-  layers[i]->errors[j] = (double)(*derivate)(layers[i]->products[j])*err;  //  compute error
-
-  for(k=0; k<layers[i-1]->size; ++k) {
-  layers[i]->deltas[j][k] = layers[i-1]->products[k]*eta*layers[i]->errors[j] + alpha*layers[i]->deltas[j][k];
-  //layers[i]->weights[j][k] += layers[i]->deltas[j][k];  //  can't do it here because of the lower layer errors
-  }
-  }
-  catch(std::exception ex) {
-  return false;
-  }
-  }
-  }
-
-  try {
-  for(i=1; i<size; ++i) {  //  for each layer (above input)
-  for(j=0; j<layers[i]->size; ++j) {   //  for each unit
-  for(k=0; k<layers[i]->lowerSize; ++k) {  //  for each weight - renew
-  layers[i]->weights[j][k] += (double)layers[i]->deltas[j][k];
-  if(std::isnan(layers[i]->weights[j][k]))
-  return false;
-  }
-  }
-  }
+    for(i=1; i<size; ++i) {  //  for each layer (above input)
+      for(j=0; j<layers[i]->size; ++j) {   //  for each unit
+	for(k=0; k<layers[i]->lowerSize; ++k) {  //  for each weight - renew
+	  layers[i]->weights[j][k] += (double)layers[i]->deltas[j][k];
+	  if(std::isnan(layers[i]->weights[j][k]))
+	    return false;
+	}
+      }
+    }
   }
   catch(std::exception ex) {
-  return false;
+    return false;
   }
 
   return true;
-  }
+}
 */
-
 void BPN::Run(char* fen) {
   PrepareFromFEN(fen);
   Run();

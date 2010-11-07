@@ -24,6 +24,7 @@ class BPN {
   void PrepareFromFEN(char*);
   void Run();
   bool Train();
+  bool DoThreading(unsigned, double (*) (double), void* (*)(void*));
 
   static double randomNum(double, double);
   static double ApplyFunction(outFunction, double);
