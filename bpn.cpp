@@ -7,6 +7,8 @@
 #include "bpnlayer.h"
 
 #define MAXTHREADS 1		// maximum number of additional threads, should be # cores -1
+#define MINCHUNK 64		// minimum number of layer units processed by thread
+
 LayerThread *li[MAXTHREADS + 1]; // thread info
 
 BPN::~BPN() {
@@ -33,7 +35,7 @@ BPN::BPN(unsigned *sizes, bool *biases, outFunction *functions, unsigned layersN
   scale_factor = o_factor;
   initial_scale = 0.03f;
 
-  if(size >0) {
+  if(size > 0) {
     layers = new bpnLayer*[size];
 
     layers[0] = new bpnLayer(sizes[0], 0, false, functions[0]);   //  input layer - no lower layer
@@ -42,9 +44,11 @@ BPN::BPN(unsigned *sizes, bool *biases, outFunction *functions, unsigned layersN
       layers[i] = new bpnLayer(sizes[i], sizes[i-1], biases[i], functions[i]);
     }
 
-    if(layers[size-1]->size >0) {
-      train_output = new double[layers[size-1]->size];
-      for(unsigned j=0; j <layers[size-1]->size; ++j) {
+    unsigned lowerSize = layers[size-1]->size;
+
+    if(lowerSize >0) {
+      train_output = new double[lowerSize];
+      for(unsigned j=0; j < lowerSize; ++j) {
 	train_output[j] = 0.0f;
       }
     }
@@ -117,10 +121,12 @@ BPN::BPN(char* file) {
       prevsize = layersize;
     }
 
-    if(layers[size-1]->size >0)
+    unsigned lowerSize = layers[size-1]->size;
+
+    if(lowerSize > 0)
       {
-	train_output = new double[layers[size-1]->size];
-	for(i=0; i <layers[size-1]->size; ++i) {
+	train_output = new double[lowerSize];
+	for(i=0; i < lowerSize; ++i) {
 	  train_output[i] = 0.0f;
 	}
       }
@@ -144,20 +150,26 @@ BPN::BPN(char* file) {
 
 void BPN::LoadLayer(bpnLayer* layer, std::ifstream& fin) {
   unsigned i, j;
+  unsigned sizeL = layer->size;
+  unsigned lowerSize = layer->lowerSize;
 
   if(layer->bias) {
-    for(i=0; i<layer->size; ++i) {
-      for(j=0; j<layer->lowerSize; ++j) {
-	fin>>layer->weights[i][j];
+    for(i=0; i < sizeL; ++i) {
+      double *weight = layer->weights[i];
+
+      for(j=0; j < lowerSize; ++j) {
+	fin>>weight[j];
       }
 
       fin>>layer->biases[i];
     }
   }
   else {
-    for(i=0; i<layer->size; ++i) {
-      for(j=0; j<layer->lowerSize; ++j) {
-	fin>>layer->weights[i][j];
+    for(i=0; i < sizeL; ++i) {
+      double *weight = layer->weights[i];
+
+      for(j=0; j < lowerSize; ++j) {
+	fin>>weight[j];
       }
     }
   }
@@ -189,7 +201,8 @@ bool BPN::SaveToFile(char* file) {
     fout<<" init_scale: "<<initial_scale<<" eta: "<<eta<<" alpha: "<<alpha<<" scale_factor: "<<scale_factor<<" layers_num: "<<size;
 
     for(i=0; i<size; ++i) {
-      fout<<" layer"<<i+1<<": size "<<layers[i]->size<<" bias "<<layers[i]->bias<<" func "<<(int)layers[i]->func;
+      bpnLayer *l = layers[i];
+      fout<<" layer"<<i+1<<": size "<<l->size<<" bias "<<l->bias<<" func "<<(int)l->func;
     }
 
     fout<<"i\n";
@@ -211,15 +224,22 @@ bool BPN::SaveToFile(char* file) {
 
 bool BPN::SaveLayer(bpnLayer* layer, std::ofstream& fout) {
   unsigned i, j;
+  unsigned sizeL = layer->size;
+  unsigned lowerSize = layer->lowerSize;
+  double **weigs = layer->weights;
 
   if(layer->bias) {
-    for(i=0; i<layer->size; ++i) {
+    double *bias = layer->biases;
+
+    for(i=0; i < sizeL; ++i) {
+      double *weight = weigs[i];
+
       try {
-	for(j=0; j<layer->lowerSize; ++j) {
-	  fout<<layer->weights[i][j]<<" ";
+	for(j=0; j < lowerSize; ++j) {
+	  fout<<weight[j]<<" ";
 	}
 
-	fout<<layer->biases[i]<<" "<<"\n";
+	fout<<bias[i]<<" "<<"\n";
       }
       catch(std::exception ex) {
 	return false;
@@ -227,14 +247,16 @@ bool BPN::SaveLayer(bpnLayer* layer, std::ofstream& fout) {
     }
   }
   else {
-    for(i=0; i<layer->size; ++i) {
-      for(j=0; j<layer->lowerSize; ++j) {
-	try {
-	  fout<<layer->weights[i][j]<<" ";
+    for(i=0; i < sizeL; ++i) {
+      double *weight = weigs[i];
+
+      try {
+	for(j=0; j < lowerSize; ++j) {
+	  fout<<weight[j]<<" ";
 	}
-	catch(std::exception ex) {
-	  return false;
-	}
+      }
+      catch(std::exception ex) {
+	return false;
       }
 
       fout<<"\n";
@@ -244,43 +266,60 @@ bool BPN::SaveLayer(bpnLayer* layer, std::ofstream& fout) {
   return true;
 }
 
-void BPN::InitializeWeights() {
-  unsigned i, j, k, hiddenNum =0;
+  void BPN::InitializeWeights() {
+    unsigned i, j, k, hiddenNum =0;
 
-  for(i=1; i<size-1; ++i) {
-    hiddenNum += layers[i]->size;
-  }
+    for(i=1; i < size-1; ++i) {
+      hiddenNum += layers[i]->size;
+    }
 
-  //    double scale = (double) (pow((double) (0.7f * (double) hiddenNum),
-  //                                  (double) (1.0f / (double) layers[0]->size)))/scale_factor;
-  //
-  //    scale = 0.03f;
+    //    double scale = (double) (pow((double) (0.7f * (double) hiddenNum),
+    //                                  (double) (1.0f / (double) layers[0]->size)))/scale_factor;
+    //
+    //    scale = 0.03f;
 
-  for(i=1; i<size; ++i) {  //  itterate layers above input
-    if(layers[i]->bias) {
-      for(j=0; j<layers[i]->size; ++j) {
-	for(k=0; k<layers[i]->lowerSize; ++k) {
-	  layers[i]->weights[j][k] = randomNum(-initial_scale, initial_scale);
+    for(i=1; i < size; ++i) {  //  itterate layers above input
+      bpnLayer *l = layers[i];
+      unsigned sizeL = l->size;
+      unsigned lowerSize = l->lowerSize;
+      double **weigs = l->weights;
+
+      if(l->bias) {
+	for(j=0; j < sizeL; ++j) {
+	  double *weight = weigs[j];
+
+	  for(k=0; k < lowerSize; ++k) {
+	    weight[k] = randomNum(-initial_scale, initial_scale);
+	  }
+
+	  l->biases[j] = randomNum(-initial_scale, initial_scale);
 	}
+      }
+      else {
+	for(j=0; j < sizeL; ++j) {
+	  double *weight = weigs[j];
 
-	layers[i]->biases[j] = randomNum(-initial_scale, initial_scale);
+	  for(k=0; k < lowerSize; ++k) {
+	    weight[k] = randomNum(-initial_scale, initial_scale);
+	  }
+	}
       }
     }
-    else {
-      for(j=0; j<layers[i]->size; ++j) {
-	for(k=0; k<layers[i]->lowerSize; ++k) {
-	  layers[i]->weights[j][k] = randomNum(-initial_scale, initial_scale);
-	}
-      }
-    }
   }
-}
 
 bool BPN::Train(double *input, double* output) {
   Run(input);
   double (*derivate) (double); //  pointer to derivate funtion
+  bpnLayer *l = layers[size-1];
+  bpnLayer *under_l = layers[size-2];
+  unsigned sizeL = l->size;
+  unsigned lowerSize = under_l->size;
+  double *prods = l->products;
+  double *under_prods = under_l->products;
+  double *errs = l->errors;
+  double **delts = l->deltas;
 
-  switch(layers[size-1]->func) {
+  switch(l->func) {
   case sigmoid:
     derivate = DerivateSigmoid;
     break;
@@ -291,13 +330,15 @@ bool BPN::Train(double *input, double* output) {
     derivate = DerivateLinear;
   }
 
-  for(unsigned i=0; i<layers[size -1]->size; ++i) { //  fill output errors
-    layers[size -1]->errors[i] = (double)(*derivate)(layers[size -1]->products[i]/scale_factor)
-      * (output[i] - layers[size -1]->products[i])/scale_factor;
+  for(unsigned i=0; i < sizeL; ++i) { //  fill output errors
+    errs[i] = (double)(*derivate)(prods[i]/scale_factor)
+      * (output[i] - prods[i])/scale_factor;
 
-    for(unsigned j=0; j<layers[size-2]->size; ++j) {
-      layers[size -1]->deltas[i][j] = layers[size-2]->products[j]*eta*layers[size-1]->errors[i]
-	+ alpha*layers[size -1]->deltas[i][j];
+    double *delta = delts[i];
+    double error = errs[i];
+
+    for(unsigned j=0; j < lowerSize; ++j) {
+      delta[j] = under_prods[j]*eta*error + alpha*delta[j];
     }
   }
 
@@ -305,8 +346,11 @@ bool BPN::Train(double *input, double* output) {
 }
 
 void BPN::Run(double* input) {
-  for(unsigned i=0; i<layers[0]->size; ++i) {   //  fill input
-    layers[0]->products[i] = input[i];
+  double *prods = layers[0]->products;
+  unsigned sizeL = layers[0]->size;
+
+  for(unsigned i=0; i < sizeL; ++i) {   //  fill input
+    prods[i] = input[i];
   }
 
   Run();
@@ -316,94 +360,83 @@ void BPN::PrepareFromFEN(char* fen) {
   int i=0;
   int j=0;
   char ch;
+  double *prods = layers[0]->products;
 
   while(i<256 && j<100) {	//	this is for 64 squares
     ch = fen[j];
 
     switch(ch) {
     case 'P':	//	white pawn - code 0001
-      layers[0]->products[i] = 0.0f;
-      layers[0]->products[i+1] = 0.0f;
-      layers[0]->products[i+2] = 0.0f;
-      layers[0]->products[i+3] = 1.0f;
-      i = i + 4;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
       break;
     case 'p':	//	black pawn - code 1001
-      layers[0]->products[i] = 1.0f;
-      layers[0]->products[i+1] = 0.0f;
-      layers[0]->products[i+2] = 0.0f;
-      layers[0]->products[i+3] = 1.0f;
-      i = i + 4;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
       break;
     case 'N':	//	white kNight - code 0010
-      layers[0]->products[i] = 0.0f;
-      layers[0]->products[i+1] = 0.0f;
-      layers[0]->products[i+2] = 1.0f;
-      layers[0]->products[i+3] = 0.0f;
-      i = i + 4;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
       break;
     case 'n':	//	black kNight - code 1010
-      layers[0]->products[i] = 1.0f;
-      layers[0]->products[i+1] = 0.0f;
-      layers[0]->products[i+2] = 1.0f;
-      layers[0]->products[i+3] = 0.0f;
-      i = i + 4;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
       break;
     case 'B':	//	white bishop - code 0011
-      layers[0]->products[i] = 0.0f;
-      layers[0]->products[i+1] = 0.0f;
-      layers[0]->products[i+2] = 1.0f;
-      layers[0]->products[i+3] = 1.0f;
-      i = i + 4;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 1.0f;
       break;
     case 'b':	//	black bishop - code 1011
-      layers[0]->products[i] = 1.0f;
-      layers[0]->products[i+1] = 0.0f;
-      layers[0]->products[i+2] = 1.0f;
-      layers[0]->products[i+3] = 1.0f;
-      i = i + 4;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 1.0f;
       break;
     case 'R':	//	white rook - code 0100
-      layers[0]->products[i] = 0.0f;
-      layers[0]->products[i+1] = 1.0f;
-      layers[0]->products[i+2] = 0.0f;
-      layers[0]->products[i+3] = 0.0f;
-      i = i + 4;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
       break;
     case 'r':	//	black rook - code 1100
-      layers[0]->products[i] = 1.0f;
-      layers[0]->products[i+1] = 1.0f;
-      layers[0]->products[i+2] = 0.0f;
-      layers[0]->products[i+3] = 0.0f;
-      i = i + 4;
+      prods[i++] = 1.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
       break;
     case 'Q':	//	white queen - code 0101
-      layers[0]->products[i] = 0.0f;
-      layers[0]->products[i+1] = 1.0f;
-      layers[0]->products[i+2] = 0.0f;
-      layers[0]->products[i+3] = 0.0f;
-      i = i + 4;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 0.0f;
       break;
     case 'q':	//	black queen - code 1101
-      layers[0]->products[i] = 1.0f;
-      layers[0]->products[i+1] = 1.0f;
-      layers[0]->products[i+2] = 0.0f;
-      layers[0]->products[i+3] = 1.0f;
-      i = i + 4;
+      prods[i++] = 1.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
       break;
     case 'K':	//	white king - code 0110
-      layers[0]->products[i] = 0.0f;
-      layers[0]->products[i+1] = 1.0f;
-      layers[0]->products[i+2] = 1.0f;
-      layers[0]->products[i+3] = 0.0f;
-      i = i + 4;
+      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
       break;
     case 'k':	//	black king - code 1110
-      layers[0]->products[i] = 1.0f;
-      layers[0]->products[i+1] = 1.0f;
-      layers[0]->products[i+2] = 1.0f;
-      layers[0]->products[i+3] = 0.0f;
-      i = i + 4;
+      prods[i++] = 1.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 1.0f;
+      prods[i++] = 0.0f;
       break;
     }
 
@@ -411,9 +444,8 @@ void BPN::PrepareFromFEN(char* fen) {
       int emptySquares = ch - '0';
       emptySquares *= 4;
 
-      for(int k=0; k< emptySquares; ++k) {
-	layers[0]->products[i] = 1.0f;
-	++i;
+      for(int k=0; k < emptySquares; ++k) {
+	prods[i++] = 1.0f;
       }
     }
 
@@ -422,12 +454,11 @@ void BPN::PrepareFromFEN(char* fen) {
 
   ch = fen[j];
   while(ch == ' ') {
-    ++j;
-    ch = fen[j];
+    ch = fen[++j];
   }
 
-  if(ch == 'w' || ch == 'W') layers[0]->products[256] = 1.0f;	//	set active colour bit - i == 256
-  else layers[0]->products[256] = 0.0f;
+  if(ch == 'w' || ch == 'W') prods[256] = 1.0f;	//	set active colour bit - i == 256
+  else prods[256] = 0.0f;
 
   do {
     ++j;
@@ -435,21 +466,21 @@ void BPN::PrepareFromFEN(char* fen) {
   }while(ch == ' ');
 
   for(i=257; i<261; ++i)
-    layers[0]->products[i] = 0.0f;
+    prods[i] = 0.0f;
 
   while(ch != '-' && ch != ' ') {
     switch(ch) {
     case 'K':	//	White can castle kingside
-      layers[0]->products[257] = 1.0f;
+      prods[257] = 1.0f;
       break;
     case 'Q':	//	White can castle queenside
-      layers[0]->products[258] = 1.0f;
+      prods[258] = 1.0f;
       break;
     case 'k':	//	Black can castle kingside
-      layers[0]->products[259] = 1.0f;
+      prods[259] = 1.0f;
       break;
     case 'q':	//	Black can castle queenside
-      layers[0]->products[260] = 1.0f;
+      prods[260] = 1.0f;
       break;
     }
 
@@ -461,9 +492,9 @@ void BPN::PrepareFromFEN(char* fen) {
     ++j;
 
   if(fen[j] =='-')
-    layers[0]->products[261] = 0.0f;
+    prods[261] = 0.0f;
   else    //  en passant possible
-    layers[0]->products[261] = 1.0f;
+    prods[261] = 1.0f;
 
   while(fen[j] != '[')
     ++j;
@@ -475,17 +506,27 @@ void* BPN::UnitThreadFuncBias (void *arg) {
   double net;
   LayerThread *lt = (LayerThread*) arg;
   unsigned k, layer = lt->layer;
+  bpnLayer *l = lt->bp->layers[layer];
+  unsigned lowerSize = l->lowerSize;
+  unsigned end = lt->end;
+  bpnLayer *under_l = lt->bp->layers[layer - 1];
+  double (*apply) (double);
+  apply = lt->apply;
+  double **weigs = l->weights;
+  double *prods = l->products;
+  double *under_prods = under_l->products;
+  double *bias = l->biases;
 
-  for(unsigned j = lt->start; j < lt->end; ++j) {   //  for each unit - compute product
+  for(unsigned j = lt->start; j < end; ++j) {   //  for each unit - compute product
     net = 0;
 
-    for(k=0; k<lt->bp->layers[layer]->lowerSize; ++k)  {
-      net += (double)lt->bp->layers[layer]->weights[j][k] * lt->bp->layers[layer - 1]->products[k];
+    double *weight = weigs[j];
+    for(k=0; k < lowerSize; ++k) {
+      net += (double)weight[k] * under_prods[k];
     }
 
-    net += lt->bp->layers[layer]->biases[j];
-
-    lt->bp->layers[layer]->products[j] = (*lt->apply)(net);
+    net += bias[j];
+    prods[j] = (*apply)(net);
   }
 
   return (void*) true;
@@ -495,15 +536,25 @@ void* BPN::UnitThreadFunc (void *arg) {
   double net;
   LayerThread *lt = (LayerThread*) arg;
   unsigned k, layer = lt->layer;
+  bpnLayer *l = lt->bp->layers[layer];
+  unsigned lowerSize = l->lowerSize;
+  unsigned end = lt->end;
+  bpnLayer *under_l = lt->bp->layers[layer - 1];
+  double (*apply) (double);
+  apply = lt->apply;
+  double **weigs = l->weights;
+  double *prods = l->products;
+  double *under_prods = under_l->products;
 
-  for(unsigned j = lt->start; j < lt->end; ++j) {   //  for each unit - compute product
+  for(unsigned j = lt->start; j < end; ++j) {   //  for each unit - compute product
     net = 0;
 
-    for(k=0; k<lt->bp->layers[layer]->lowerSize; ++k)  {
-      net += (double)lt->bp->layers[layer]->weights[j][k] * lt->bp->layers[layer - 1]->products[k];
+    double *weight = weigs[j];
+    for(k=0; k < lowerSize; ++k) {
+      net += (double)weight[k] * under_prods[k];
     }
 
-    lt->bp->layers[layer]->products[j] = (*lt->apply)(net);
+    prods[j] = (*apply)(net);
   }
 
   return (void*) true;
@@ -513,17 +564,28 @@ void* BPN::UnitThreadFuncBiasScale (void *arg) {
   double net;
   LayerThread *lt = (LayerThread*) arg;
   unsigned k, layer = lt->layer;
+  bpnLayer *l = lt->bp->layers[layer];
+  unsigned lowerSize = l->lowerSize;
+  unsigned end = lt->end;
+  bpnLayer *under_l = lt->bp->layers[layer - 1];
+  double (*apply) (double);
+  apply = lt->apply;
+  double scale_factor = lt->bp->scale_factor;
+  double **weigs = l->weights;
+  double *prods = l->products;
+  double *under_prods = under_l->products;
+  double *bias = l->biases;
 
-  for(unsigned j = lt->start; j < lt->end; ++j) {   //  for each unit - compute product
+  for(unsigned j = lt->start; j < end; ++j) {   //  for each unit - compute product
     net = 0;
 
-    for(k=0; k<lt->bp->layers[layer]->lowerSize; ++k)  {
-      net += (double)lt->bp->layers[layer]->weights[j][k]
-	* lt->bp->layers[layer - 1]->products[k];
+    double *weight = weigs[j];
+    for(k=0; k < lowerSize; ++k) {
+      net += (double)weight[k] * under_prods[k];
     }
 
-    net += lt->bp->layers[layer]->biases[j];
-    lt->bp->layers[layer]->products[j] = (*lt->apply)(net) * lt->bp->scale_factor;
+    net += bias[j];
+    prods[j] = (*apply)(net) * scale_factor;
   }
 
   return (void*) true;
@@ -533,62 +595,78 @@ void* BPN::UnitThreadFuncScale (void *arg) {
   double net;
   LayerThread *lt = (LayerThread*) arg;
   unsigned k, layer = lt->layer;
+  bpnLayer *l = lt->bp->layers[layer];
+  unsigned lowerSize = l->lowerSize;
+  unsigned end = lt->end;
+  bpnLayer *under_l = lt->bp->layers[layer - 1];
+  double (*apply) (double);
+  apply = lt->apply;
+  double scale_factor = lt->bp->scale_factor;
+  double **weigs = l->weights;
+  double *prods = l->products;
+  double *under_prods = under_l->products;
 
-  for(unsigned j = lt->start; j < lt->end; ++j) {   //  for each unit - compute product
+  for(unsigned j = lt->start; j < end; ++j) {   //  for each unit - compute product
     net = 0;
 
-    for(k=0; k<lt->bp->layers[layer]->lowerSize; ++k) {
-      net += (double)lt->bp->layers[layer]->weights[j][k]
-	* lt->bp->layers[layer - 1]->products[k];
+    double *weight = weigs[j];
+    for(k=0; k < lowerSize; ++k) {
+      net += (double)weight[k] * under_prods[k];
     }
 
-    lt->bp->layers[layer]->products[j] = (*lt->apply)(net) * lt->bp->scale_factor;
+    prods[j] = (*apply)(net) * scale_factor;
   }
 
   return (void*) true;
 }
 
 bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)(void*)) {
-  unsigned j, chunk, nthreads;
+  unsigned i, layer_size = layers[layer]->size;
+  unsigned nthreads = (layer_size > MAXTHREADS ? MAXTHREADS : layer_size - 1);
+  unsigned chunk = layer_size / (nthreads+1);
   pthread_t thread_id[MAXTHREADS];
   bool retval, ok = true;
 
-  // determine actual number of additional threads to spawn
-  if (layers[layer]->size > MAXTHREADS) {
-    nthreads = MAXTHREADS;
-    chunk = layers[layer]->size / (MAXTHREADS+1);
-  }
-  else {
-    nthreads = layers[layer]->size - 1;
-    chunk = 1;
+  if(nthreads && chunk < MINCHUNK) { // decrease number of threads for bigger chunks
+    if(layer_size < 2*MINCHUNK) {
+      nthreads = 0;
+    }
+    else {
+      nthreads = (layer_size - MINCHUNK) / MINCHUNK;
+      chunk = layer_size / (nthreads+1);
+    }
   }
 
   unsigned prev_end = 0;
-  for(j=0; j<nthreads; ++j) {	// create threads
-    li[j]->layer = layer;
-    li[j]->apply = apply;
-    li[j]->start = prev_end;	//j*chunk
-    prev_end += chunk;
-    li[j]->end = prev_end;	//(j+1)*chunk
-    li[j]->bp = this;
+  for(i=0; i<nthreads; ++i) {	// create threads
+    LayerThread *lt = li[i];
 
-    pthread_create(&thread_id[j], NULL, thrFunc, li[j]);
+    lt->layer = layer;
+    lt->apply = apply;
+    lt->start = prev_end;	//i*chunk
+    prev_end += chunk;
+    lt->end = prev_end;	//(i+1)*chunk
+    lt->bp = this;
+
+    pthread_create(&thread_id[i], NULL, thrFunc, lt);
   }
 
   // finish what's left in the main thread
-  if (prev_end < layers[layer]->size) {	// li[nthreads]->start < li[nthreads]->end
-    li[nthreads]->start = prev_end; //nthreads*chunk
-    li[nthreads]->end = layers[layer]->size;
-    li[nthreads]->layer = layer;
-    li[nthreads]->apply = apply;
-    li[nthreads]->bp = this;
+  if (prev_end < layer_size) {	// li[nthreads]->start < li[nthreads]->end
+    LayerThread *lt = li[nthreads];
 
-    retval = (*thrFunc)(li[nthreads]);
+    lt->start = prev_end; //nthreads*chunk
+    lt->end = layer_size;
+    lt->layer = layer;
+    lt->apply = apply;
+    lt->bp = this;
+
+    retval = (*thrFunc)(lt);
     ok = ok && retval;
   }
 
-  for(j=0; j<nthreads; ++j) {
-    pthread_join(thread_id[j], (void**) &retval);
+  for(i=0; i<nthreads; ++i) {
+    pthread_join(thread_id[i], (void**) &retval);
     ok = ok && retval;
   }
 
@@ -638,11 +716,10 @@ void BPN::Run() {//  assume that input is already placed in the first layer
 
 /*
 void BPN::Run() { //  assume that input is already placed in the first layer
-  unsigned i, j, k;
-  double net;
-  double (*apply) (double); //  pointer to output funtion
+  unsigned j, k;
+  double net, (*apply) (double); //  pointer to output funtion
 
-  for(i=1; i<size-1; ++i) {  //  for each layer above input
+  for(unsigned i=1; i<size-1; ++i) {  //  for each layer above input
     //  determine output function before iterating through units - it's always same function for the whole layer
     switch(layers[i]->func) {
     case sigmoid:
@@ -655,28 +732,34 @@ void BPN::Run() { //  assume that input is already placed in the first layer
       apply = ApplyLinear;
     }
 
-    if(layers[i]->bias) {
-      for(j=0; j<layers[i]->size; ++j) {  //  for each unit - compute product
-	net = 0;
+    bpnLayer *l = layers[i];
+    bpnLayer *under_l = layers[i-1];
+    unsigned sizeL = l->size;
+    unsigned lowerSize = l->lowerSize;
 
-	for(k=0; k<layers[i]->lowerSize; ++k) {
-	  net += (double)layers[i]->weights[j][k]*layers[i-1]->products[k];
+    if(layers[i]->bias) {
+      for(j=0; j < sizeL; ++j) {  //  for each unit - compute product
+	net = 0;
+	double *weight = l->weights[j];
+
+	for(k=0; k < lowerSize; ++k) {
+	  net += (double)weight[k] * under_l->products[k];
 	}
 
-	net += layers[i]->biases[j];
-
-	layers[i]->products[j] = (*apply)(net);
+	net += l->biases[j];
+	l->products[j] = (*apply)(net);
       }
     }
     else {
-      for(j=0; j<layers[i]->size; ++j) {  //  for each unit - compute product
+      for(j=0; j < sizeL; ++j) {  //  for each unit - compute product
 	net = 0;
+	double *weight = l->weights[j];
 
-	for(k=0; k<layers[i]->lowerSize; ++k) {
-	  net += layers[i]->weights[j][k]*layers[i-1]->products[k];
+	for(k=0; k < lowerSize; ++k) {
+	  net += weight[k] * under_l->products[k];
 	}
 
-	layers[i]->products[j] = (*apply)(net);
+	l->products[j] = (*apply)(net);
       }
     }
   }
@@ -693,28 +776,34 @@ void BPN::Run() { //  assume that input is already placed in the first layer
     apply = ApplyLinear;
   }
 
-  if(layers[size-1]->bias) {
-    for(j=0; j<layers[size-1]->size; ++j) {  //  for each unit - compute product
-      net = 0;
+  bpnLayer *l = layers[size-1];
+  bpnLayer *under_l = layers[size-2];
+  unsigned sizeL = l->size;
+  unsigned lowerSize = l->lowerSize;
 
-      for(k=0; k<layers[size-1]->lowerSize; ++k) {
-	net += (double)layers[size-1]->weights[j][k]*layers[size-2]->products[k];
+  if(l->bias) {
+    for(j=0; j < sizeL; ++j) {  //  for each unit - compute product
+      net = 0;
+      double *weight = l->weights[j];
+
+      for(k=0; k < lowerSize; ++k) {
+	net += (double)weight[k] * under_l->products[k];
       }
 
-      net += layers[size-1]->biases[j];
-
-      layers[size-1]->products[j] = (*apply)(net)*scale_factor;
+      net += l->biases[j];
+      l->products[j] = (*apply)(net)*scale_factor;
     }
   }
   else {
-    for(j=0; j<layers[size-1]->size; ++j) {  //  for each unit - compute product
+    for(j=0; j < sizeL; ++j) {  //  for each unit - compute product
       net = 0;
+      double *weight = l->weights[j];
 
-      for(k=0; k<layers[size-1]->lowerSize; ++k) {
-	net += (double)layers[size-1]->weights[j][k]*layers[size-2]->products[k];
+      for(k=0; k < lowerSize; ++k) {
+	net += (double)weight[k] * under_l->products[k];
       }
 
-      layers[size-1]->products[j] = (*apply)(net)*scale_factor;
+      l->products[j] = (*apply)(net)*scale_factor;
     }
   }
 }
@@ -722,26 +811,36 @@ void BPN::Run() { //  assume that input is already placed in the first layer
 bool BPN::Train(char* fen) {
   Run(fen);
   double (*derivate) (double); //  pointer to derivate funtion
+  bpnLayer *l = layers[size-1];
+  bpnLayer *under_l = layers[size-2];
+  unsigned sizeL = l->size;
+  unsigned lowerSize = under_l->size;
+  double *prods = l->products;
+  double *under_prods = under_l->products;
+  double *errs = l->errors;
+  double **delts = l->deltas;
 
-  switch(layers[size-1]->func) {
+  switch(l->func) {
   case sigmoid:
-    derivate = &DerivateSigmoid;
+    derivate = DerivateSigmoid;
     break;
   case sigmoid2:
-    derivate = &DerivateSigmoid2;
+    derivate = DerivateSigmoid2;
     break;
   default:
-    derivate = &DerivateLinear;
+    derivate = DerivateLinear;
   }
 
   unsigned j;
-  for(unsigned i=0; i<layers[size -1]->size; ++i) { //  fill output errors
-    layers[size -1]->errors[i] = (double)(*derivate)(layers[size -1]->products[i]/scale_factor)
-      * (train_output[i] - layers[size -1]->products[i])/scale_factor;
+  for(unsigned i=0; i < sizeL; ++i) { //  fill output errors
+    errs[i] = (double)(*derivate)(prods[i]/scale_factor)
+      * (train_output[i] - prods[i])/scale_factor;
 
-    for(j=0; j<layers[size-2]->size; ++j) {
-      layers[size -1]->deltas[i][j] = layers[size-2]->products[j] * eta
-	* layers[size-1]->errors[i] + alpha*layers[size-1]->deltas[i][j];
+    double *delta = delts[i];
+    double error = errs[i];
+
+    for(j=0; j < lowerSize; ++j) {
+      delta[j] = under_prods[j]*eta*error + alpha*delta[j];
     }
   }
 
@@ -752,21 +851,37 @@ void* BPN::UnitThreadFuncTrain (void *arg) {
   double err;
   LayerThread *lt = (LayerThread*) arg;
   unsigned k, layer = lt->layer;
+  bpnLayer *l = lt->bp->layers[layer];
+  bpnLayer *under_l = lt->bp->layers[layer - 1];
+  bpnLayer *upper_l = lt->bp->layers[layer + 1];
+  unsigned upperSize = upper_l->size;
+  unsigned lowerSize = under_l->size;
+  unsigned end = lt->end;
+  double eta = lt->bp->eta, alpha = lt->bp->alpha;
+  double (*apply) (double);
+  apply = lt->apply;
+  double *errs = l->errors;
+  double *upper_errs = upper_l->errors;
+  double *prods = l->products;
+  double *under_prods = under_l->products;
+  double **delts = l->deltas;
+  double **weigs = upper_l->weights;
 
-  for(unsigned j = lt->start; j < lt->end; ++j) {   //  for each unit - compute product
+  for(unsigned j = lt->start; j < end; ++j) {   //  for each unit - compute product
     err = 0.0f;
 
     try {
-      for(k=0; k<lt->bp->layers[layer + 1]->size; ++k) {   //  for each unit in the upper layer
-	err += lt->bp->layers[layer + 1]->errors[k] * lt->bp->layers[layer + 1]->weights[k][j];
+      for(k=0; k < upperSize; ++k) {   //  for each unit in the upper layer
+	err += upper_errs[k] * weigs[k][j];
       }
 
-      lt->bp->layers[layer]->errors[j] = (double)(*lt->apply)(lt->bp->layers[layer]->products[j])*err;  //  compute error
+      l->errors[j] = (double)(*apply)(prods[j])*err;  //  compute error
 
-      for(k=0; k<lt->bp->layers[layer - 1]->size; ++k) {
-	lt->bp->layers[layer]->deltas[j][k] = lt->bp->layers[layer - 1]->products[k]
-	  * lt->bp->eta * lt->bp->layers[layer]->errors[j]
-	  + lt->bp->alpha * lt->bp->layers[layer]->deltas[j][k];
+      double *delta = delts[j];
+      double error = errs[j];
+
+      for(k=0; k < lowerSize; ++k) {
+	delta[k] = under_prods[k]*eta*error + alpha*delta[k];
       }
     }
     catch(std::exception ex) {
@@ -780,12 +895,20 @@ void* BPN::UnitThreadFuncTrain (void *arg) {
 void* BPN::UnitThreadFuncRenew (void *arg) {
   LayerThread *lt = (LayerThread*) arg;
   unsigned k, layer = lt->layer;
+  bpnLayer *l = lt->bp->layers[layer];
+  unsigned lowerSize = l->lowerSize;
+  unsigned end = lt->end;
+  double **weigs = l->weights;
+  double **delts = l->deltas;
 
   try {
-    for(unsigned j = lt->start; j<lt->end; ++j) {   //  for each unit
-      for(k=0; k<lt->bp->layers[layer]->lowerSize; ++k) {  //  for each weight - renew
-	lt->bp->layers[layer]->weights[j][k] += (double)lt->bp->layers[layer]->deltas[j][k];
-	if(std::isnan(lt->bp->layers[layer]->weights[j][k]))
+    for(unsigned j = lt->start; j < end; ++j) {   //  for each unit
+      double *weight = weigs[j];
+      double *delta = delts[j];
+
+      for(k=0; k < lowerSize; ++k) {  //  for each weight - renew
+	weight[k] += (double)delta[k];
+	if(std::isnan(weight[k]))
 	  return (void*) false;
       }
     }
@@ -834,8 +957,21 @@ bool BPN::Train() {
   double (*derivate) (double); //  pointer to derivate funtion
 
   for(i=size-2; i>0; --i) {   //  compute errors and weights' changes - itterate layers from top to bottom
+    bpnLayer *l = layers[i];
+    bpnLayer *upper_l = layers[i+1];
+    bpnLayer *under_l = layers[i-1];
+    unsigned sizeL = l->size;
+    unsigned lowerSize = l->lowerSize;
+    unsigned upperSize = upper_l->size;
+    double *errs = l->errors;
+    double *up_errs = upper_l->errors;
+    double **up_weigs = upper_l->weights;
+    double *prods = l->products;
+    double *un_prods = under_l->products;
+    double **delts = l->deltas;
+
     //  determine derivate function before iterating through units - it's always same derivate for the whole layer
-    switch(layers[i]->func) {
+    switch(l->func) {
     case sigmoid:
       derivate = DerivateSigmoid;
       break;
@@ -846,18 +982,20 @@ bool BPN::Train() {
       derivate = DerivateLinear;
     }
 
-    for(j=0; j<layers[i]->size; ++j) {  //  for each unit in the layer
+    for(j=0; j < sizeL; ++j) {  //  for each unit in the layer
       err = 0.0f;
 
       try {
-	for(k=0; k<layers[i+1]->size; ++k) {   //  for each unit in the upper layer
-	  err += layers[i+1]->errors[k]*layers[i+1]->weights[k][j];
+	for(k=0; k < upperSize; ++k) {   //  for each unit in the upper layer
+	  err += up_errs[k] * up_weigs[k][j];
 	}
 
-	layers[i]->errors[j] = (double)(*derivate)(layers[i]->products[j])*err;  //  compute error
+	errs[j] = (double)(*derivate)(prods[j]) * err; //  compute error
 
-	for(k=0; k<layers[i-1]->size; ++k) {
-	  layers[i]->deltas[j][k] = layers[i-1]->products[k]*eta*layers[i]->errors[j] + alpha*layers[i]->deltas[j][k];
+	double *delta = delts[j];
+
+	for(k=0; k < lowerSize; ++k) {
+	  delta[k] = un_prods[k]*eta*errs[j] + alpha*delta[k];
 	  //layers[i]->weights[j][k] += layers[i]->deltas[j][k];  //  can't do it here because of the lower layer errors
 	}
       }
@@ -869,11 +1007,19 @@ bool BPN::Train() {
 
   try {
     for(i=1; i<size; ++i) {  //  for each layer (above input)
-      for(j=0; j<layers[i]->size; ++j) {   //  for each unit
-	for(k=0; k<layers[i]->lowerSize; ++k) {  //  for each weight - renew
-	  layers[i]->weights[j][k] += (double)layers[i]->deltas[j][k];
-	  if(std::isnan(layers[i]->weights[j][k]))
-	    return false;
+      bpnLayer *l = layers[i];
+      unsigned sizeL = l->size;
+      unsigned lowerSize = l->lowerSize;
+      double **delts = l->deltas;
+      double **weigs = l->weights;
+
+      for(j=0; j < sizeL; ++j) {   //  for each unit
+	double *weight = weigs[j];
+	double *delta = delts[j];
+
+	for(k=0; k < lowerSize; ++k) {  //  for each weight - renew
+	  weight[k] += (double)delta[k];
+	  if(std::isnan(weight[k])) return false;
 	}
       }
     }

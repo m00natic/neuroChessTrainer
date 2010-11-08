@@ -265,8 +265,7 @@ void nTrain::ConvertLog(QString filePath) {
 }
 
 void nTrain::FENtoInput(QString line, QTextStream &out) {
-  int i=0;
-  int j=0;
+  int i=0, j=0;
 
   while(i<256 && j<line.length()) {	//	this is for 64 squares
     switch(line[j].toLatin1()) {
