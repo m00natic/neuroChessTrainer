@@ -4,6 +4,17 @@
 #include <fstream>
 #include "bpnlayer.h"
 
+const unsigned MAXTHREADS = 1; // maximum number of additional threads, should be # cores -1
+const unsigned MINCHUNK = 64; // minimum number of layer units processed by thread
+
+class BPN;
+
+struct LayerThread {
+  unsigned layer, start, end;
+  BPN *bp;
+  double (*apply) (double);
+};
+
 class BPN {
  public:
   BPN(unsigned*, bool*, outFunction*, unsigned, double, double, double);
@@ -27,8 +38,6 @@ class BPN {
   bool DoThreading(unsigned, double (*) (double), void* (*)(void*));
 
   static double randomNum(double, double);
-  static double ApplyFunction(outFunction, double);
-  static double ApplyDerivate(outFunction, double);
   static double ApplyLinear(double);
   static double ApplySigmoid(double);
   static double ApplySigmoid2(double);
@@ -45,6 +54,7 @@ class BPN {
 
  private:
   double initial_scale;
+  LayerThread *li[MAXTHREADS + 1]; // thread info
 
  public:
   unsigned size;
@@ -53,12 +63,6 @@ class BPN {
   double scale_factor;
   double alpha;    //  momentum
   double eta;  //  learning rate
-};
-
-struct LayerThread {
-  unsigned layer, start, end;
-  BPN *bp;
-  double (*apply) (double);
 };
 
 #endif // BPN_H

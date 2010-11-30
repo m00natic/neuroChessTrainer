@@ -404,7 +404,11 @@ void nTrain::on_pbTest_clicked() {
 
   ui->pbProgress->reset();
 
+  time_t rawtime;
+
   ui->teLog->append("Testing:");
+  time ( &rawtime );
+  ui->teLog->append(ctime(&rawtime));
   //ui->teLog->scroll(0,50);
   ui->teLog->repaint();
 
@@ -469,6 +473,8 @@ void nTrain::on_pbTest_clicked() {
   if(ui->pbProgress->value() >1)
     ui->teLog->append("Total mean error: " + QString::number(total_error));
 
+  time ( &rawtime );
+  ui->teLog->append(ctime(&rawtime));
 
   QApplication::restoreOverrideCursor();
 }

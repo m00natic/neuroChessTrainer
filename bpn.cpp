@@ -6,11 +6,6 @@
 #include "bpn.h"
 #include "bpnlayer.h"
 
-#define MAXTHREADS 1		// maximum number of additional threads, should be # cores -1
-#define MINCHUNK 64		// minimum number of layer units processed by thread
-
-LayerThread *li[MAXTHREADS + 1]; // thread info
-
 BPN::~BPN() {
   if(size >0) {
     if(layers[size-1]->size >0)
@@ -1034,37 +1029,6 @@ bool BPN::Train() {
 void BPN::Run(char* fen) {
   PrepareFromFEN(fen);
   Run();
-}
-
-double BPN::ApplyFunction(outFunction func, double net) {
-  switch(func) {
-  case sigmoid:
-    net = (double)1/(1+exp(-net));
-    break;
-  case sigmoid2:
-    net = (double)2 / (1 + exp(-2 * net)) - 1;
-    break;
-  default:
-    break;
-  }
-
-  return net;
-}
-
-double BPN::ApplyDerivate(outFunction func, double val) {
-  switch(func) {
-  case sigmoid:
-    val = val*(1-val);
-    break;
-  case sigmoid2:
-    val = (double) 1 - (pow(val, 2));
-    break;
-  default:
-    val = 1;
-    break;
-  }
-
-  return val;
 }
 
 double BPN::ApplyLinear(double val) {
