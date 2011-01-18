@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'ntrain.h'
 **
-** Created: Sun Nov 28 19:56:09 2010
+** Created: Fri Dec 10 14:56:44 2010
 **      by: The Qt Meta Object Compiler version 62 (Qt 4.6.3)
 **
 ** WARNING! All changes made in this file will be lost!

@@ -1043,7 +1043,7 @@ double BPN::ApplySigmoid2(double val) {
   return (double)2 / (1 + exp(-2 * val)) - 1;
 }
 
-double BPN::DerivateLinear(double val) {
+double BPN::DerivateLinear(double) {
   return 1;
 }
 
