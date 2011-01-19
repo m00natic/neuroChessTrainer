@@ -1,10 +1,10 @@
 * neuroGrape - an attempt to approximate the evaluation function of
 * the Grapefruit chess engine with a backpropagation neural network.
 
-Grapefruit is an open sourced chess engine using the UCI
-protocol[fn:1].  Grapefruit is derivative of Toga which is a
-modification on Fruit.  Information for these engines and their
-modifications can be found at
+Grapefruit is an open source chess engine using the UCI
+protocol[fn:1].  Grapefruit is derivative of Toga which is derivative
+of Fruit.  Information for these engines and their modifications can
+be found at
 http://www.computerchess.info/tdbb/phpBB3/viewforum.php?f=9
 
 * grapeLog - http://github.com/m00natic/grapeLog
@@ -47,10 +47,10 @@ from the first line specify respectively:
      0 - linear
      1 - sigmoid with range (0; 1)
      2 - sigmoid with range (-1; 1)
-7) if the line end with `x' - initialization of all weights will be
+7) if the line ends with `x' - initialization of all weights will be
    done.  This is a way of creating new networks with different
-   characteristics than the automatically created.  Weights will be
-   initialized after `Load' of the file.
+   characteristics than the default.  Weights will be initialized
+   after `Load' of the file.
 
 `Train' button invokes backpropagation learning over `Train directory'
 where each training file is used `Epochs' number of times.  For just
@@ -65,7 +65,7 @@ nTrain for evaluating positions.  For now, name of the neural network
 file is fixed to `grape.bpn' and has to reside within the same
 directory.
 
-All 3 programmes are written in C++ with nTrain being a Qt GUI.
+All 3 programmes are written in C++ with nTrain being a Qt[fn:5] app.
 Instructions for running under GNU/Linux: for example using
 XBoard[fn:3] along with UCI adaptor Polyglot[fn:4].  There are example
 .ini configuration files and a shell script for arranging engine
@@ -77,3 +77,4 @@ tournaments in the download section.
 [fn:2] http://en.wikipedia.org/wiki/Forsyth-Edwards_Notation
 [fn:3] http://www.tim-mann.org/xboard.html
 [fn:4] http://wbec-ridderkerk.nl/html/details1/PolyGlot.html
+[fn:5] http://www.qtsoftware.com
