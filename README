@@ -1,44 +1,64 @@
-* neuroGrape - an attempt to approximate the evaluation function of
-* the Grapefruit chess engine with a backpropagation neural network.
+* neuroChessTrainer (nTrain)
+is a little free Qt[fn:1] GUI manipulating backpropagation neural
+networks[fn:2].  It's supposed to be fed with specific files created
+by the log modes of neuroStock[fn:3] or neuroGrape[fn:4] chess
+engines.  It creates/manipulates neural network files that can be used
+by the neuro modes of these engines.
 
-Grapefruit is an open source chess engine using the UCI
-protocol[fn:1].  Grapefruit is derivative of Toga which is derivative
-of Fruit.  Information for these engines and their modifications can
-be found at
-http://www.computerchess.info/tdbb/phpBB3/viewforum.php?f=9
-
-* grapeLog - http://github.com/m00natic/grapeLog
-is a slight modification of Grapefruit which logs its eval over
-positions in FEN notation[fn:2].  There must be `logs' directory in
-the engine's folder where evals will be logged.  This information is
-used for learning.
-
-* nTrain (neuroTrainer) - http://github.com/m00natic/grapeTrainer
-is a little GUI manipulating backpropagation neural networks.  `Train
-directory' specifies directory of log files to be used.  `Convert
-train files' converts raw .log files to .bpnl files where FEN notation
-is recoded in 262 bits + eval number allowing slightly faster training
-and assessment.  This conversion is optional and doesn't seem to give
-substantial advantage.  If there is even one .bpnl file in the `Train
-directory', only .bpnl files will be used for training or assessment.
-Otherwise .log files will be used.
-
+* Usage
 During start a neural network is created with the following
 characteristics: 4 layers - input with 262 neurons, hidden with 66
 neurons, hidden with 256 neurons and output with 1 neuron.  Neurons
 from all layers except the input have bias.  All neurons have a
 sigmoid output function ranging in (-1; 1).  Network output is scaled
 by 29744 which is Grapefruit's internal maximum.  Learning rate is
-0.35, acceleration 0.3.  `Save' writes current network to file which
-can later be loaded through the `Load' button.  Structure of these
-files fully specifies the neural network.  The first line describes
-main characteristics and the rest - weights of all neurons.  Elements
-from the first line specify respectively:
+0.35, acceleration 0.3.  This somewhat arbitrary specification can be
+changed by saving, editing and then loading the new one.
+
+** `Train directory' file browser button
+specifies directory of log files to be used.
+
+** `Convert train files' button
+converts raw .log files to .bpnl files where FEN[fn:5] notation
+is recoded in 262 bits + eval number allowing slightly faster training
+and assessment.  This conversion is optional and doesn't seem to give
+substantial advantage.  If there is even one .bpnl file in the `Train
+directory', only .bpnl files will be used for training or assessment.
+Otherwise .log files will be used.
+
+** `Save' file browser button
+writes current network to file.
+
+** `Load' file browser button
+loads network from file.
+
+** `Train' button
+invokes backpropagation learning over `Train directory'.  For just in
+case, in bpn~ file current state of the network is backup-ed after
+each file is iterated.  On error, network state is restored from
+there.
+
+** `Epochs' spin box
+specifies number of iterations over each training file.
+
+** `Test' button
+calculates mean error which the current network gives
+over the files in `Train directory' and total mean error.
+
+** `Threads' spin box
+specifies number of threads to be used for training or testing of the
+next neural network to be loaded.
+
+* saved/loaded neural network files specification
+Structure of these files fully specifies a neural network.  The first
+line describes main characteristics and the rest - weights of all
+neurons.  Elements from the first line specify respectively:
+
 1) absolute value of range where random numbers will be used for
    initializing weights.
 2) learning rate
 3) acceleration
-4) output scaling constant
+4) output scaling constant (29744 for Grapefruit, 30000 for Stockfish)
 5) total number of layers including input and output
 6) sequentially enumerating characteristics of the layers
    - number of neurons
@@ -52,29 +72,16 @@ from the first line specify respectively:
    characteristics than the default.  Weights will be initialized
    after `Load' of the file.
 
-`Train' button invokes backpropagation learning over `Train directory'
-where each training file is used `Epochs' number of times.  For just
-in case, in bpn~ file current state of the network is backup-ed after
-each file is iterated.  On error, network state is restored from
-there.  `Test' calculates mean error which the current network gives
-over the files in `Train directory' and total mean error.
+* Building from source
+Just invoke `make' within the source directory.
 
-* neuroGrape - http://github.com/m00natic/neuroGrape
-is a modification of Grapefruit that uses neural network created with
-nTrain for evaluating positions.  For now, name of the neural network
-file is fixed to `grape.bpn' and has to reside within the same
-directory.
-
-All 3 programmes are written in C++ with nTrain being a Qt[fn:5] app.
-Instructions for running under GNU/Linux: for example using
-XBoard[fn:3] along with UCI adaptor Polyglot[fn:4].  There are example
-.ini configuration files and a shell script for arranging engine
-tournaments in the download section.
+* Disclaimer
+neuroChessTrainer is developed and tested only on GNU/Linux so far.
 
 
 * Footnotes
-[fn:1] http://en.wikipedia.org/wiki/Universal_Chess_Interface
-[fn:2] http://en.wikipedia.org/wiki/Forsyth-Edwards_Notation
-[fn:3] http://www.tim-mann.org/xboard.html
-[fn:4] http://wbec-ridderkerk.nl/html/details1/PolyGlot.html
-[fn:5] http://www.qtsoftware.com
+[fn:1] http://qt.nokia.com
+[fn:2] http://en.wikipedia.org/wiki/Backpropagation
+[fn:3] https://github.com/m00natic/neuroStock
+[fn:4] https://github.com/m00natic/neuroGrape
+[fn:5] http://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
