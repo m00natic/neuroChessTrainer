@@ -55,7 +55,7 @@ void nTrain::on_pbTrain_clicked() {
 	}
 	else {
 	  delete bpn0;
-	  bpn0 = new BPN((char*)"./bpn~");
+	  bpn0 = new BPN((char*)"./bpn~", ui->sbThreads->value() -1);
 
 	  ui->teLog->append("error");
 	  ui->teLog->repaint();
@@ -90,7 +90,7 @@ void nTrain::on_pbTrain_clicked() {
 	}
 	else {
 	  delete bpn0;
-	  bpn0 = new BPN((char*)"./bpn~");
+	  bpn0 = new BPN((char*)"./bpn~", ui->sbThreads->value() -1);
 
 	  ui->teLog->append("error");
 	  ui->teLog->repaint();
@@ -172,7 +172,7 @@ void nTrain::ConstructBPN() {
   outFunction functions[] = {sigmoid2, sigmoid2, sigmoid2, sigmoid2};
   bool biases[] = {false, true, true, true};
 
-  bpn0 = new BPN(sizes, biases, functions, 4, 0.35f, 0.3f, 29744.0f);
+  bpn0 = new BPN(sizes, biases, functions, 4, 0.35f, 0.3f, 29744.0f, ui->sbThreads->value() -1);
   bpn0->InitializeWeights();
 }
 
@@ -187,7 +187,7 @@ void nTrain::on_pbBrowseFile_clicked() {
     QApplication::setOverrideCursor(wait);
 
     try {
-      bpn0 = new BPN(file.toLatin1().data());
+      bpn0 = new BPN(file.toLatin1().data(), ui->sbThreads->value() -1);
       ui->teLog->append(ui->leOpenPath->text() + " successfully loaded.");
     }
     catch(std::exception ex) {
@@ -502,7 +502,7 @@ double nTrain::TestOverFile(QString filePath, int &i) {
     //        ui->teLog->append(QVariant::fromValue(bpn0->train_output[0]).toString() + " : " + QVariant::fromValue(bpn0->layers[bpn0->size - 1]->products[0]).toString());
     //        ui->teLog->repaint();
 
-    err = output[0] - (bpn0->layers[bpn0->size-1]->products[0]);
+    err = output[0] - (bpn0->layers[bpn0->size-1]->products[0][0]);
     if(err < 0) err = -err;
     sumerror += err;
 
@@ -528,9 +528,9 @@ double nTrain::TestOverRawFile(QString filePath, int &i) {
   while(!in.atEnd()) {
     char* line = in.readLine().toLatin1().data();
 
-    bpn0->Run(line);
+    bpn0->Run(line, true);
 
-    err = bpn0->train_output[0] - bpn0->layers[bpn0->size - 1]->products[0];
+    err = bpn0->train_output[0] - bpn0->layers[bpn0->size - 1]->products[0][0];
 
     //        ui->teLog->append(QVariant::fromValue(bpn0->train_output[0]).toString() + " : " + QVariant::fromValue(bpn0->layers[bpn0->size - 1]->products[0]).toString());
     //        ui->teLog->repaint();

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'ntrain.ui'
 **
-** Created: Fri Dec 10 14:56:40 2010
+** Created: Thu Jan 27 23:54:33 2011
 **      by: Qt User Interface Compiler version 4.6.3
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -44,6 +44,9 @@ public:
     QSpinBox *sbEpochs;
     QSpacerItem *horizontalSpacer;
     QPushButton *pbTest;
+    QHBoxLayout *horizontalLayout_3;
+    QLabel *label_4;
+    QSpinBox *sbThreads;
     QLabel *label_3;
     QPushButton *pbSave;
     QVBoxLayout *verticalLayout_2;
@@ -60,11 +63,11 @@ public:
     {
         if (nTrainClass->objectName().isEmpty())
             nTrainClass->setObjectName(QString::fromUtf8("nTrainClass"));
-        nTrainClass->resize(327, 419);
+        nTrainClass->resize(346, 451);
         nTrainClass->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
         layoutWidget = new QWidget(nTrainClass);
         layoutWidget->setObjectName(QString::fromUtf8("layoutWidget"));
-        layoutWidget->setGeometry(QRect(10, 5, 314, 411));
+        layoutWidget->setGeometry(QRect(10, 10, 329, 431));
         verticalLayout_3 = new QVBoxLayout(layoutWidget);
         verticalLayout_3->setSpacing(6);
         verticalLayout_3->setContentsMargins(11, 11, 11, 11);
@@ -78,6 +81,7 @@ public:
         verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
         label = new QLabel(layoutWidget);
         label->setObjectName(QString::fromUtf8("label"));
+        label->setAlignment(Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter);
 
         verticalLayout->addWidget(label);
 
@@ -112,10 +116,28 @@ public:
 
         verticalLayout->addWidget(pbTest);
 
+        horizontalLayout_3 = new QHBoxLayout();
+        horizontalLayout_3->setSpacing(6);
+        horizontalLayout_3->setObjectName(QString::fromUtf8("horizontalLayout_3"));
+        label_4 = new QLabel(layoutWidget);
+        label_4->setObjectName(QString::fromUtf8("label_4"));
+
+        horizontalLayout_3->addWidget(label_4);
+
+        sbThreads = new QSpinBox(layoutWidget);
+        sbThreads->setObjectName(QString::fromUtf8("sbThreads"));
+        sbThreads->setMinimum(1);
+
+        horizontalLayout_3->addWidget(sbThreads);
+
         label_3 = new QLabel(layoutWidget);
         label_3->setObjectName(QString::fromUtf8("label_3"));
+        label_3->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
 
-        verticalLayout->addWidget(label_3);
+        horizontalLayout_3->addWidget(label_3);
+
+
+        verticalLayout->addLayout(horizontalLayout_3);
 
         pbSave = new QPushButton(layoutWidget);
         pbSave->setObjectName(QString::fromUtf8("pbSave"));
@@ -204,6 +226,7 @@ public:
         pbConvert->setText(QApplication::translate("nTrainClass", "Convert train files", 0, QApplication::UnicodeUTF8));
         label_2->setText(QApplication::translate("nTrainClass", "Epochs", 0, QApplication::UnicodeUTF8));
         pbTest->setText(QApplication::translate("nTrainClass", "Test", 0, QApplication::UnicodeUTF8));
+        label_4->setText(QApplication::translate("nTrainClass", "Threads", 0, QApplication::UnicodeUTF8));
         label_3->setText(QApplication::translate("nTrainClass", "Save path", 0, QApplication::UnicodeUTF8));
         pbSave->setText(QApplication::translate("nTrainClass", "Save", 0, QApplication::UnicodeUTF8));
         pbBrowseDir->setText(QApplication::translate("nTrainClass", "Browse Train Folder", 0, QApplication::UnicodeUTF8));
