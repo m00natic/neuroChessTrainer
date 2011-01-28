@@ -4,9 +4,6 @@
 #include <fstream>
 #include "bpnlayer.h"
 
-const unsigned MAXTHREADS = 1; // maximum number of additional threads, should be # cores -1
-const unsigned MINCHUNK = 64; // minimum number of layer units processed by thread
-
 class BPN;
 
 struct LayerThread {
@@ -17,23 +14,28 @@ struct LayerThread {
 
 class BPN {
  public:
-  BPN(unsigned*, bool*, outFunction*, unsigned, double, double, double);
-  BPN(char*);
+  BPN(unsigned*, bool*, outFunction*, unsigned, double, double, double, unsigned);
+  BPN(const char*, unsigned);
   ~BPN();
 
-  void InitializeWeights();
-  bool SaveToFile(char*);
+  void Run(const char*, unsigned);
+  bool Train(const char*);
+  bool SaveToFile(const char*);
   bool Train(double*, double*);
-  void Run(double*);
-  bool Train(char*);
-  void Run(char*);
+  void InitializeWeights();
+  void Run(const double*);
+  void Run(const char*, bool);
 
  private:
-  bool SaveLayer(bpnLayer*, std::ofstream&);
+  void Run(const double*, unsigned);
+
+  bool SaveLayer(const bpnLayer*, std::ofstream&);
   std::string readString(std::ifstream&);
   void LoadLayer(bpnLayer*, std::ifstream&);
-  void PrepareFromFEN(char*);
+  void PrepareFromFEN(const char*, bool);
+  void PrepareFromFEN(const char*, unsigned, bool);
   void Run();
+  void Run(unsigned);
   bool Train();
   bool DoThreading(unsigned, double (*) (double), void* (*)(void*));
 
@@ -49,14 +51,18 @@ class BPN {
   static void* UnitThreadFunc (void*);
   static void* UnitThreadFuncBiasScale (void*);
   static void* UnitThreadFuncScale (void*);
+
   static void* UnitThreadFuncTrain (void*);
   static void* UnitThreadFuncRenew (void*);
 
  private:
   double initial_scale;
-  LayerThread *li[MAXTHREADS + 1]; // thread info
+  LayerThread **li; // thread info
+  pthread_t *thread_id;
 
  public:
+  unsigned minchunk; // minimum number of layer units processed by thread
+  unsigned threads; // number of additional threads, should be # cores -1
   unsigned size;
   bpnLayer **layers;
   double* train_output;

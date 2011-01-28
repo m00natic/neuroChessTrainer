@@ -10,16 +10,17 @@ enum outFunction {
 
 class bpnLayer {
  public:
-  bpnLayer(unsigned, unsigned, bool, outFunction);
+  bpnLayer(unsigned, unsigned, bool, outFunction, unsigned);
   ~bpnLayer();
 
+  unsigned threads;
   unsigned size;
   unsigned lowerSize;
   bool bias;
   double **weights;
   double **deltas;
   double *biases;
-  double *products;
+  double **products;
   double *errors;
   outFunction func;
 };
