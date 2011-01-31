@@ -1,8 +1,6 @@
 #include <QFileDialog>
 #include <QTextStream>
-#include <cstdlib>
 #include <ctime>
-#include <cmath>
 #include "ntrain.h"
 #include "ui_ntrain.h"
 #include "bpn.h"
@@ -13,7 +11,7 @@ nTrain::nTrain(QWidget *parent)
   ui->pbProgress->setVisible(false);
   ui->teLog->ensureCursorVisible();
 
-  ConstructBPN();
+  bpn0 = new BPN();
 }
 
 nTrain::~nTrain() {
@@ -39,6 +37,8 @@ void nTrain::on_pbTrain_clicked() {
 
   ui->pbProgress->reset();
 
+  bpn0->ChangeThreads(ui->sbThreads->value() -1);
+
   if(logDir.entryInfoList().count() >0) {
     ui->pbProgress->setRange(0, logDir.entryInfoList().count()*ui->sbEpochs->value());
     ui->pbProgress->setValue(0);
@@ -50,7 +50,7 @@ void nTrain::on_pbTrain_clicked() {
       ui->teLog->repaint();
 
       for(int i=0; i < ui->sbEpochs->value(); ++i) {
-	if(TrainOverFile(log.absoluteFilePath())) {
+	if(bpn0->TrainOverFile(log.absoluteFilePath().toLocal8Bit().constData())) {
 	  bpn0->SaveToFile((char*)"./bpn~");
 	}
 	else {
@@ -85,7 +85,7 @@ void nTrain::on_pbTrain_clicked() {
       ui->teLog->repaint();
 
       for(int i=0; i < ui->sbEpochs->value(); ++i) {
-	if(TrainOverRawFile(log.absoluteFilePath())) {
+	if(bpn0->TrainOverRawFile(log.absoluteFilePath().toLocal8Bit().constData())) {
 	  bpn0->SaveToFile((char*)"./bpn~");
 	}
 	else {
@@ -113,67 +113,10 @@ void nTrain::on_pbTrain_clicked() {
   QApplication::restoreOverrideCursor();
 }
 
-bool nTrain::TrainOverFile(QString filePath) {
-  QFile filelog(filePath);
-  if (!filelog.open(QIODevice::ReadOnly | QIODevice::Text))
-    return false;
-
-  QTextStream in(&filelog);
-
-  double input[262];
-  double output[1];
-
-  while(!in.atEnd()) {
-    char* line = in.readLine().toLatin1().data();
-
-    for(int i=0; i<262; ++i) {
-      input[i] = (double)((int)line[i] - 48);
-    }
-
-    output[0] = atof((char*)(line + 263));
-
-    if(!bpn0->Train(input, output)) {
-      filelog.close();
-      return false;
-    }
-  }
-
-  filelog.close();
-  return true;
-}
-
-bool nTrain::TrainOverRawFile(QString filePath) {
-  QFile filelog(filePath);
-  if (!filelog.open(QIODevice::ReadOnly | QIODevice::Text))
-    return false;
-
-  QTextStream in(&filelog);
-
-  while(!in.atEnd()) {
-    char* line = in.readLine().toLatin1().data();
-    if(!bpn0->Train(line)) {
-      filelog.close();
-      return false;
-    }
-  }
-
-  filelog.close();
-  return true;
-}
-
 void nTrain::on_pbBrowseDir_clicked() {
   QString folder = QFileDialog::getExistingDirectory(this, tr("Locate Train Folder"), ".");
   if(!folder.isEmpty())
     ui->leTrainPath->setText(folder);
-}
-
-void nTrain::ConstructBPN() {
-  unsigned sizes[] = {262, 66, 256, 1};
-  outFunction functions[] = {sigmoid2, sigmoid2, sigmoid2, sigmoid2};
-  bool biases[] = {false, true, true, true};
-
-  bpn0 = new BPN(sizes, biases, functions, 4, 0.35f, 0.3f, 29744.0f, ui->sbThreads->value() -1);
-  bpn0->InitializeWeights();
 }
 
 void nTrain::on_pbBrowseFile_clicked() {
@@ -413,7 +356,9 @@ void nTrain::on_pbTest_clicked() {
   ui->teLog->repaint();
 
   double total_error = 0, current_error;
-  int total_count=0, i=0;
+  int total_count=0, i;
+
+  bpn0->ChangeThreads(ui->sbThreads->value() -1);
 
   if(logDir.entryInfoList().count() >0) {
     ui->pbProgress->setRange(0, logDir.entryInfoList().count());
@@ -422,7 +367,7 @@ void nTrain::on_pbTest_clicked() {
 
     foreach(QFileInfo log, logDir.entryInfoList()) {
       i = 0;
-      current_error = TestOverFile(log.absoluteFilePath(), i);
+      current_error = bpn0->TestOverFile(log.absoluteFilePath().toLocal8Bit().constData(), i);
 
       if(i > 0) {
 	total_error += current_error;
@@ -448,7 +393,7 @@ void nTrain::on_pbTest_clicked() {
 
     foreach(QFileInfo log, logDir.entryInfoList()) {
       i = 0;
-      current_error = TestOverRawFile(log.absoluteFilePath(), i);
+      current_error = bpn0->TestOverRawFile(log.absoluteFilePath().toLocal8Bit().constData(), i);
 
       if(i > 0) {
 	total_error += current_error;
@@ -477,75 +422,6 @@ void nTrain::on_pbTest_clicked() {
   ui->teLog->append(ctime(&rawtime));
 
   QApplication::restoreOverrideCursor();
-}
-
-double nTrain::TestOverFile(QString filePath, int &i) {
-  QFile filelog(filePath);
-  if (!filelog.open(QIODevice::ReadOnly | QIODevice::Text))
-    return false;
-
-  QTextStream in(&filelog);
-
-  double input[262], output[1], err, sumerror=0;
-
-  while(!in.atEnd()) {
-    char* line = in.readLine().toLatin1().data();
-
-    for(int j=0; j<262; ++j) {
-      input[j] = (double)((int)line[j] - 48);
-    }
-
-    output[0] = atof((char*)(line + 263));
-
-    bpn0->Run(input);
-
-    //        ui->teLog->append(QVariant::fromValue(bpn0->train_output[0]).toString() + " : " + QVariant::fromValue(bpn0->layers[bpn0->size - 1]->products[0]).toString());
-    //        ui->teLog->repaint();
-
-    err = output[0] - (bpn0->layers[bpn0->size-1]->products[0][0]);
-    if(err < 0) err = -err;
-    sumerror += err;
-
-    ++i;
-  }
-
-  filelog.close();
-
-  if(i ==0) return 0;
-
-  return sumerror;
-}
-
-double nTrain::TestOverRawFile(QString filePath, int &i) {
-  QFile filelog(filePath);
-  if (!filelog.open(QIODevice::ReadOnly | QIODevice::Text))
-    return false;
-
-  QTextStream in(&filelog);
-
-  double sumerror=0, err;
-
-  while(!in.atEnd()) {
-    char* line = in.readLine().toLatin1().data();
-
-    bpn0->Run(line, true);
-
-    err = bpn0->train_output[0] - bpn0->layers[bpn0->size - 1]->products[0][0];
-
-    //        ui->teLog->append(QVariant::fromValue(bpn0->train_output[0]).toString() + " : " + QVariant::fromValue(bpn0->layers[bpn0->size - 1]->products[0]).toString());
-    //        ui->teLog->repaint();
-
-    if(err < 0) err = -err;
-    sumerror += err;
-
-    ++i;
-  }
-
-  filelog.close();
-
-  if(i ==0) return 0;
-
-  return sumerror;
 }
 
 void nTrain::on_pbStop_clicked() {

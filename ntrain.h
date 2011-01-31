@@ -22,13 +22,8 @@ private:
     Ui::nTrainClass *ui;
     BPN *bpn0;
 
-    void ConstructBPN();
     void ConvertLog(QString);
     void FENtoInput(QString, QTextStream &);
-    bool TrainOverFile(QString);
-    bool TrainOverRawFile(QString);
-    double TestOverFile(QString, int&);
-    double TestOverRawFile(QString, int&);
 
 private slots:
     void on_pbTest_clicked();

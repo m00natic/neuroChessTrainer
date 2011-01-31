@@ -23,10 +23,34 @@ BPN::~BPN() {
   }
 
   delete [] li;
-  delete [] thread_id;
+  delete [] thread_ids;
 }
 
-BPN::BPN(unsigned *sizes, bool *biases, outFunction *functions, unsigned layersNumber, double et, double alph, double o_factor, unsigned thrs) {
+void BPN::ChangeThreads(unsigned thr) {
+  unsigned i;
+
+  for(i=0; i <= threads; ++i) {
+    delete li[i];
+  }
+
+  delete [] li;
+  delete [] thread_ids;
+
+  threads = thr;
+
+  li = new LayerThread*[threads + 1];
+  for(i=0; i <= threads; ++i) {
+    li[i] = new LayerThread;
+  }
+
+  thread_ids = new pthread_t[threads];
+
+  for(i=0; i < size; ++i) {
+    layers[i]->ChangeThreads(threads + 1);
+  }
+}
+
+void BPN::constructor(unsigned *sizes, bool *biases, outFunction *functions, unsigned layersNumber, double et, double alph, double o_factor, unsigned thrs) {
   threads = thrs;
   minchunk = 64;
   size = layersNumber;
@@ -61,23 +85,33 @@ BPN::BPN(unsigned *sizes, bool *biases, outFunction *functions, unsigned layersN
     li[i] = new LayerThread;
   }
 
-  thread_id = new pthread_t[threads];
+  thread_ids = new pthread_t[threads];
+}
+
+void BPN::ConstructDefault(unsigned thrs) {
+  unsigned sizes[] = {262, 66, 256, 1};
+  outFunction functions[] = {sigmoid2, sigmoid2, sigmoid2, sigmoid2};
+  bool biases[] = {false, true, true, true};
+
+  constructor(sizes, biases, functions, 4, 0.35f, 0.3f, 29744.0f, thrs);
+  InitializeWeights();
+}
+
+BPN::BPN() {
+  ConstructDefault(1);
 }
 
 BPN::BPN(const char* file, unsigned thrs) {
-  threads = thrs;
-  minchunk = 64;
-  unsigned i;
-
-  li = new LayerThread*[threads];
-  for(unsigned i=0; i <= threads; ++i) {
-    li[i] = new LayerThread;
-  }
-
-  thread_id = new pthread_t[threads];
-
   std::ifstream fin;
   fin.open(file, std::ifstream::in);
+
+  if(!fin.is_open()) {
+    ConstructDefault(thrs);
+    return;
+  }
+
+  unsigned i;
+  threads = thrs;
 
   readString(fin);
   fin>>initial_scale;
@@ -154,6 +188,15 @@ BPN::BPN(const char* file, unsigned thrs) {
   }
 
   fin.close();
+
+  minchunk = 64;
+
+  li = new LayerThread*[threads];
+  for(i=0; i <= threads; ++i) {
+    li[i] = new LayerThread;
+  }
+
+  thread_ids = new pthread_t[threads];
 }
 
 void BPN::LoadLayer(bpnLayer* layer, std::ifstream& fin) {
@@ -286,6 +329,8 @@ void BPN::InitializeWeights() {
   //
   //    scale = 0.03f;
 
+  srand(time(NULL));
+
   for(i=1; i < size; ++i) {  //  itterate layers above input
     bpnLayer *l = layers[i];
     unsigned sizeL = l->size;
@@ -316,7 +361,11 @@ void BPN::InitializeWeights() {
 }
 
 bool BPN::Train(double *input, double* output) {
-  Run(input);
+  if (input ==NULL)
+    Run();
+  else
+    Run(input);
+
   double (*derivate) (double); //  pointer to derivate funtion
   bpnLayer *l = layers[size-1];
   bpnLayer *under_l = layers[size-2];
@@ -382,13 +431,10 @@ void BPN::PrepareFromFEN(const char* fen, bool training) {
 void BPN::PrepareFromFEN(const char* fen, unsigned threadid, bool training) {
   int i=0;
   int j=0;
-  char ch;
   double *prods = layers[0]->products[threadid];
 
   while(i<256 && j<100) {	//	this is for 64 squares
-    ch = fen[j];
-
-    switch(ch) {
+    switch(fen[j]) {
     case 'P':	//	white pawn - code 0001
       prods[i++] = 0.0f;
       prods[i++] = 0.0f;
@@ -441,7 +487,7 @@ void BPN::PrepareFromFEN(const char* fen, unsigned threadid, bool training) {
       prods[i++] = 0.0f;
       prods[i++] = 1.0f;
       prods[i++] = 0.0f;
-      prods[i++] = 0.0f;
+      prods[i++] = 1.0f;
       break;
     case 'q':	//	black queen - code 1101
       prods[i++] = 1.0f;
@@ -463,8 +509,8 @@ void BPN::PrepareFromFEN(const char* fen, unsigned threadid, bool training) {
       break;
     }
 
-    if(ch <= '8' && ch>= '1') {
-      int emptySquares = ch - '0';
+    if(fen[j] <= '8' && fen[j]>= '1') {
+      int emptySquares = fen[j] - '0';
       emptySquares *= 4;
 
       for(int k=0; k < emptySquares; ++k) {
@@ -475,24 +521,21 @@ void BPN::PrepareFromFEN(const char* fen, unsigned threadid, bool training) {
     ++j;
   }
 
-  ch = fen[j];
-  while(ch == ' ') {
-    ch = fen[++j];
-  }
+  while(fen[j] == ' ')
+    ++j;
 
-  if(ch == 'w' || ch == 'W') prods[256] = 1.0f;	//	set active colour bit - i == 256
+  if(fen[j] == 'w' || fen[j] == 'W') prods[256] = 1.0f;	//	set active colour bit - i == 256
   else prods[256] = 0.0f;
 
   do {
     ++j;
-    ch = fen[j];
-  }while(ch == ' ');
+  }while(fen[j] == ' ');
 
   for(i=257; i<261; ++i)
     prods[i] = 0.0f;
 
-  while(ch != '-' && ch != ' ') {
-    switch(ch) {
+  while(fen[j] != '-' && fen[j] != ' ') {
+    switch(fen[j]) {
     case 'K':	//	White can castle kingside
       prods[257] = 1.0f;
       break;
@@ -508,7 +551,6 @@ void BPN::PrepareFromFEN(const char* fen, unsigned threadid, bool training) {
     }
 
     ++j;
-    ch = fen[j];
   }
 
   while(fen[j] == ' ')
@@ -661,7 +703,7 @@ bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)
     }
   }
 
-  //pthread_t thread_id[threads];
+  //pthread_t thread_ids[threads];
 
   unsigned prev_end = 0;
   for(i=0; i<nthreads; ++i) {	// create threads
@@ -674,7 +716,7 @@ bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)
     lt->end = prev_end;	//(i+1)*chunk
     lt->bp = this;
 
-    pthread_create(&thread_id[i], NULL, thrFunc, lt);
+    pthread_create(&thread_ids[i], NULL, thrFunc, lt);
   }
 
   // finish what's left in the main thread
@@ -692,7 +734,7 @@ bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)
   }
 
   for(i=0; i<nthreads; ++i) {
-    pthread_join(thread_id[i], (void**) &retval);
+    pthread_join(thread_ids[i], (void**) &retval);
     ok = ok && retval;
   }
 
@@ -1095,4 +1137,107 @@ double BPN::DerivateSigmoid2(double val) {
 
 double BPN::randomNum(double minv, double maxv) {
   return (double)minv + (maxv - minv)*rand()/(RAND_MAX+1.0f);
+}
+
+bool BPN::TrainOverFile(const std::string filePath) {
+  double output[1];
+  unsigned j;
+  double *prods = layers[0]->products[0];
+  std::string str;
+  std::ifstream fin;
+
+  fin.open(filePath.c_str(), std::ifstream::in);
+  if(!fin.is_open()) return false;
+
+  while(getline(fin, str)) {
+    const char *line = str.c_str();
+
+    for(j=0; j < 262; ++j) {
+      prods[j] = (double)((int)line[j] - 48);
+    }
+
+    output[0] = atof((char*)(line + 263));
+
+    if(!Train(NULL, output)) {
+      fin.close();
+      return false;
+    }
+  }
+
+  fin.close();
+  return true;
+}
+
+bool BPN::TrainOverRawFile(const std::string filePath) {
+  std::string str;
+  std::ifstream fin;
+
+  fin.open(filePath.c_str(), std::ifstream::in);
+  if(!fin.is_open()) return false;
+
+  while(getline(fin, str)) {
+    if(!Train(str.c_str())) {
+      fin.close();
+      return false;
+    }
+  }
+
+  fin.close();
+  return true;
+}
+
+double BPN::TestOverFile(const std::string filePath, int &i) {
+  double sumerror=0, err;
+  unsigned j;
+  double *prods = layers[0]->products[0];
+  std::string str;
+  std::ifstream fin;
+
+  fin.open(filePath.c_str(), std::ifstream::in);
+  if(!fin.is_open()) return 0;
+
+  while(getline(fin, str)) {
+    const char *line = str.c_str();
+
+    for(j=0; j < 262; ++j) {
+      prods[j] = (double)((int)line[j] - 48);
+    }
+
+    Run();
+
+    err = (double)atof((char*)(line + 263)) - layers[size - 1]->products[0][0];
+
+    if(err < 0) err = -err;
+    sumerror += err;
+
+    ++i;
+  }
+
+  fin.close();
+
+  return sumerror;
+}
+
+double BPN::TestOverRawFile(const std::string filePath, int &i) {
+  double sumerror=0, err;
+  std::string str;
+  std::ifstream fin;
+
+  fin.open(filePath.c_str(), std::ifstream::in);
+  if(!fin.is_open()) return 0;
+
+  while(getline(fin, str)) {
+    Run(str.c_str(), true);
+
+    err = train_output[0] - layers[size - 1]->products[0][0];
+
+    if(err < 0) err = -err;
+    sumerror += err;
+
+    ++i;
+  }
+
+  fin.close();
+
+  return sumerror;
 }

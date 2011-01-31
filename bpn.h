@@ -14,20 +14,29 @@ struct LayerThread {
 
 class BPN {
  public:
-  BPN(unsigned*, bool*, outFunction*, unsigned, double, double, double, unsigned);
   BPN(const char*, unsigned);
+  BPN();
   ~BPN();
 
-  void Run(const char*, unsigned);
-  bool Train(const char*);
   bool SaveToFile(const char*);
-  bool Train(double*, double*);
-  void InitializeWeights();
-  void Run(const double*);
-  void Run(const char*, bool);
+  void ChangeThreads(unsigned);
+
+  bool TrainOverFile(const std::string);
+  bool TrainOverRawFile(const std::string);
+  double TestOverFile(const std::string, int &);
+  double TestOverRawFile(const std::string, int &);
 
  private:
+  void constructor(unsigned*, bool*, outFunction*, unsigned, double, double, double, unsigned);
+  void ConstructDefault(unsigned);
+  void InitializeWeights();
+
   void Run(const double*, unsigned);
+  void Run(const char*, unsigned);
+  void Run(const double*);
+  void Run(const char*, bool);
+  bool Train(const char*);
+  bool Train(double*, double*);
 
   bool SaveLayer(const bpnLayer*, std::ofstream&);
   std::string readString(std::ifstream&);
@@ -58,11 +67,11 @@ class BPN {
  private:
   double initial_scale;
   LayerThread **li; // thread info
-  pthread_t *thread_id;
+  pthread_t *thread_ids;
+  unsigned threads; // number of additional threads, should be # cores -1
 
  public:
   unsigned minchunk; // minimum number of layer units processed by thread
-  unsigned threads; // number of additional threads, should be # cores -1
   unsigned size;
   bpnLayer **layers;
   double* train_output;
