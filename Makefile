@@ -11,14 +11,15 @@
 CC            = gcc
 CXX           = g++
 DEFINES       = -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
-CFLAGS        = -pipe -g -Wall -W -D_REENTRANT -march=core2 -O3 $(DEFINES)
-CXXFLAGS      = -pipe -g -Wall -W -D_REENTRANT -march=core2 -O3 $(DEFINES)
+CLIFLAGS      = -pipe -g -Wall -W -DNDEBUG -D_REENTRANT -O3
+CFLAGS        = $(CLIFLAGS) $(DEFINES)
+CXXFLAGS      = $(CLIFLAGS) $(DEFINES)
 INCPATH       = -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I.
 LINK          = g++
 LFLAGS        = -Wl,-rpath,/usr/lib64/qt4
-LIBS          = $(SUBLIBS)  -L/usr/lib64/qt4 -lQtGui -L/usr/lib64 -L/usr/lib64/qt4 -L/usr/X11R6/lib -lQtCore -lgthread-2.0 -lrt -lglib-2.0 -lpthread 
+LIBS          = $(SUBLIBS)  -L/usr/lib64/qt4 -lQtGui -L/usr/lib64 -L/usr/lib64/qt4 -L/usr/X11R6/lib -lQtCore -lgthread-2.0 -lrt -lglib-2.0 -lpthread
 AR            = ar cqs
-RANLIB        = 
+RANLIB        =
 QMAKE         = /usr/bin/qmake
 TAR           = tar -cf
 COMPRESS      = gzip -9f
@@ -73,7 +74,7 @@ DIST          = /usr/share/qt4/mkspecs/common/g++.conf \
 		/usr/share/qt4/mkspecs/features/include_source_dir.prf \
 		nTrainer.pro
 QMAKE_TARGET  = nTrainer
-DESTDIR       = 
+DESTDIR       =
 TARGET        = nTrainer
 
 first: all
@@ -100,7 +101,7 @@ first: all
 
 all: Makefile $(TARGET)
 
-$(TARGET): ui_ntrain.h $(OBJECTS)  
+$(TARGET): ui_ntrain.h $(OBJECTS)
 	$(LINK) $(LFLAGS) -o $(TARGET) $(OBJECTS) $(OBJCOMP) $(LIBS)
 
 Makefile: nTrainer.pro  /usr/share/qt4/mkspecs/linux-g++/qmake.conf /usr/share/qt4/mkspecs/common/g++.conf \
@@ -149,21 +150,20 @@ Makefile: nTrainer.pro  /usr/share/qt4/mkspecs/linux-g++/qmake.conf /usr/share/q
 qmake:  FORCE
 	@$(QMAKE) -spec /usr/share/qt4/mkspecs/linux-g++ -unix CONFIG+=debug -o Makefile nTrainer.pro
 
-dist: 
-	@$(CHK_DIR_EXISTS) .tmp/nTrainer1.0.0 || $(MKDIR) .tmp/nTrainer1.0.0 
+dist:
+	@$(CHK_DIR_EXISTS) .tmp/nTrainer1.0.0 || $(MKDIR) .tmp/nTrainer1.0.0
 	$(COPY_FILE) --parents $(SOURCES) $(DIST) .tmp/nTrainer1.0.0/ && $(COPY_FILE) --parents ntrain.h bpnlayer.h bpn.h .tmp/nTrainer1.0.0/ && $(COPY_FILE) --parents main.cpp ntrain.cpp bpnlayer.cpp bpn.cpp .tmp/nTrainer1.0.0/ && $(COPY_FILE) --parents ntrain.ui .tmp/nTrainer1.0.0/ && (cd `dirname .tmp/nTrainer1.0.0` && $(TAR) nTrainer1.0.0.tar nTrainer1.0.0 && $(COMPRESS) nTrainer1.0.0.tar) && $(MOVE) `dirname .tmp/nTrainer1.0.0`/nTrainer1.0.0.tar.gz . && $(DEL_FILE) -r .tmp/nTrainer1.0.0
 
 
-clean:compiler_clean 
+clean:compiler_clean
 	-$(DEL_FILE) $(OBJECTS)
 	-$(DEL_FILE) *~ core *.core
-
+	-$(DEL_FILE) ntrain-cli.o
 
 ####### Sub-libraries
 
 distclean: clean
-	-$(DEL_FILE) $(TARGET) 
-	-$(DEL_FILE) Makefile
+	-$(DEL_FILE) $(TARGET) ntrain-cli
 
 
 check: first
@@ -199,7 +199,7 @@ compiler_yacc_impl_make_all:
 compiler_yacc_impl_clean:
 compiler_lex_make_all:
 compiler_lex_clean:
-compiler_clean: compiler_moc_header_clean compiler_uic_clean 
+compiler_clean: compiler_moc_header_clean compiler_uic_clean
 
 ####### Compile
 
@@ -215,13 +215,13 @@ ntrain.o: ntrain.cpp ntrain.h \
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ntrain.o ntrain.cpp
 
 bpnlayer.o: bpnlayer.cpp bpnlayer.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o bpnlayer.o bpnlayer.cpp
+	$(CXX) -c $(CLIFLAGS) -o bpnlayer.o bpnlayer.cpp
 
 bpn.o: bpn.cpp bpn.h \
 		bpnlayer.h
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o bpn.o bpn.cpp
+	$(CXX) -c $(CLIFLAGS) -o bpn.o bpn.cpp
 
-moc_ntrain.o: moc_ntrain.cpp 
+moc_ntrain.o: moc_ntrain.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_ntrain.o moc_ntrain.cpp
 
 ####### Install
@@ -232,3 +232,10 @@ uninstall:   FORCE
 
 FORCE:
 
+####### CLI
+
+ntrain-cli.o: bpn.h
+	$(CXX) -c $(CLIFLAGS) -o ntrain-cli.o ntrain-cli.cpp
+
+cli: ntrain-cli.o bpn.o bpnlayer.o
+	$(CXX) $(CLIFLAGS) -o ntrain-cli ntrain-cli.o bpn.o bpnlayer.o -lpthread

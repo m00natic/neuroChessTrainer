@@ -1,3 +1,6 @@
+# -*- mode:org -*-         neuroChessTrainer
+#+STARTUP: indent
+
 * neuroChessTrainer (nTrain)
 is a little free Qt[fn:1] GUI manipulating backpropagation neural
 networks[fn:2].  It's supposed to be fed with specific files created
@@ -12,8 +15,10 @@ neurons, hidden with 256 neurons and output with 1 neuron.  Neurons
 from all layers except the input have bias.  All neurons have a
 sigmoid output function ranging in (-1; 1).  Network output is scaled
 by 29744 which is Grapefruit's internal maximum.  Learning rate is
-0.35, acceleration 0.3.  This somewhat arbitrary specification can be
-changed by saving, editing and then loading the new one.
+0.35, acceleration 0.3.  This somewhat arbitrary specification (except
+the number of neurons in the input and output layers) can be changed
+by saving, editing and then loading the new one.  In fact it seems
+that this network is too small for chess.
 
 ** `Train directory' file browser button
 specifies directory of log files to be used.
@@ -22,9 +27,10 @@ specifies directory of log files to be used.
 converts raw .log files to .bpnl files where FEN[fn:5] notation
 is recoded in 262 bits + eval number allowing slightly faster training
 and assessment.  This conversion is optional and doesn't seem to give
-substantial advantage.  If there is even one .bpnl file in the `Train
-directory', only .bpnl files will be used for training or assessment.
-Otherwise .log files will be used.
+substantial advantage (I'll have to think of some binary format).  If
+there is even one .bpnl file in the `Train directory', only .bpnl
+files will be used for training or assessment.  Otherwise .log files
+will be used.
 
 ** `Save' file browser button
 writes current network to file.
@@ -35,21 +41,20 @@ loads network from file.
 ** `Train' button
 invokes backpropagation learning over `Train directory'.  For just in
 case, in bpn~ file current state of the network is backup-ed after
-each file is iterated.  On error, network state is restored from
+each file is processed.  On error, network state is restored from
 there.
 
 ** `Epochs' spin box
-specifies number of iterations over each training file.
+specifies number of train iterations over the set of files.
 
 ** `Test' button
 calculates mean error which the current network gives
 over the files in `Train directory' and total mean error.
 
 ** `Threads' spin box
-specifies number of threads to be used for training or testing of the
-next neural network to be loaded.
+specifies number of threads to be used for training or testing.
 
-* saved/loaded neural network files specification
+* Neural network files specification
 Structure of these files fully specifies a neural network.  The first
 line describes main characteristics and the rest - weights of all
 neurons.  Elements from the first line specify respectively:
@@ -58,7 +63,7 @@ neurons.  Elements from the first line specify respectively:
    initializing weights.
 2) learning rate
 3) acceleration
-4) output scaling constant (29744 for Grapefruit, 30000 for Stockfish)
+4) output scaling constant (29744 for Grapefruit, 30001 for Stockfish)
 5) total number of layers including input and output
 6) sequentially enumerating characteristics of the layers
    - number of neurons
@@ -68,15 +73,21 @@ neurons.  Elements from the first line specify respectively:
      1 - sigmoid with range (0; 1)
      2 - sigmoid with range (-1; 1)
 7) if the line ends with `x' - initialization of all weights will be
-   done.  This is a way of creating new networks with different
+   performed.  This is a way of creating new networks with different
    characteristics than the default.  Weights will be initialized
    after `Load' of the file.
 
 * Building from source
 Just invoke `make' within the source directory.
 
+* CLI version
+There is less obtrusive and script friendly command line interface
+that can be built by invoking `make cli' within the sources
+directory.  To see available arguments and options, just execute the
+script with no arguments.
+
 * Disclaimer
-neuroChessTrainer is developed and tested only on GNU/Linux so far.
+neuroChessTrainer is developed and tested only on GNU/Linux thus far.
 
 
 * Footnotes
