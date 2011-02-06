@@ -345,7 +345,7 @@ void convert_file(const std::string file) {
   fin.open(file.c_str(), std::ifstream::in);
   if(!fin.is_open()) return;
 
-  fout.open(new_file.c_str(), std::ifstream::out);
+  fout.open(new_file.c_str(), std::ofstream::out);
   if(!fout.is_open()) return;
 
   std::string str;
