@@ -720,7 +720,7 @@ void* BPN::UnitThreadFuncScale (void *arg) {
   return (void*) true;
 }
 
-bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)(void*), bool dec_threads) {
+bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)(void*)) {
   int i, layer_size = layers[layer]->size;
   int nthreads = layer_size > max_threads ? max_threads : layer_size - 1;
   int chunk = layer_size / (nthreads+1);
@@ -748,12 +748,7 @@ bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)
     prev_end += chunk;
     lt->end = prev_end;	//(i+1)*chunk
     lt->bp = this;
-
-    if(dec_threads) {
-      pthread_mutex_lock(&max_threads_mutex);
-      --max_threads;
-      pthread_mutex_unlock(&max_threads_mutex);
-    }
+    lt->inc_threads = false;
 
     pthread_create(&thread_ids[i], NULL, thrFunc, lt);
   }
@@ -767,12 +762,7 @@ bool BPN::DoThreading(unsigned layer, double (*apply) (double), void* (*thrFunc)
     lt->layer = layer;
     lt->apply = apply;
     lt->bp = this;
-
-    if(dec_threads) {
-      pthread_mutex_lock(&max_threads_mutex);
-      --max_threads;
-      pthread_mutex_unlock(&max_threads_mutex);
-    }
+    lt->inc_threads = false;
 
     retval = (*thrFunc)(lt);
     ok = ok && retval;
@@ -804,9 +794,9 @@ void BPN::Run() {//  assume that input is already placed in the first layer
     }
 
     if(layers[i]->bias)
-      DoThreading(i, apply, UnitThreadFuncBias, false);
+      DoThreading(i, apply, UnitThreadFuncBias);
     else
-      DoThreading(i, apply, UnitThreadFunc, false);
+      DoThreading(i, apply, UnitThreadFunc);
   }
 
   //  same for output layer - though add scale factor
@@ -822,9 +812,9 @@ void BPN::Run() {//  assume that input is already placed in the first layer
   }
 
   if(layers[size-1]->bias)
-    DoThreading(size-1, apply, UnitThreadFuncBiasScale, false);
+    DoThreading(size-1, apply, UnitThreadFuncBiasScale);
   else
-    DoThreading(size-1, apply, UnitThreadFuncScale, false);
+    DoThreading(size-1, apply, UnitThreadFuncScale);
 }
 
 void BPN::Run(unsigned threadid) { //  assume that input is already placed in the first layer
@@ -1028,9 +1018,11 @@ void* BPN::UnitThreadFuncRenew (void *arg) {
 	if(std::isnan(weight[k])) {
 	  weight[k] = ensure;
 
-	  pthread_mutex_lock(&lt->bp->max_threads_mutex);
-	  lt->bp->max_threads++;
-	  pthread_mutex_unlock(&lt->bp->max_threads_mutex);
+	  if(lt->inc_threads) {
+	    pthread_mutex_lock(&lt->bp->max_threads_mutex);
+	    lt->bp->max_threads++;
+	    pthread_mutex_unlock(&lt->bp->max_threads_mutex);
+	  }
 
 	  return (void*) false;
 	}
@@ -1038,16 +1030,20 @@ void* BPN::UnitThreadFuncRenew (void *arg) {
     }
   }
   catch(std::exception ex) {
-    pthread_mutex_lock(&lt->bp->max_threads_mutex);
-    lt->bp->max_threads++;
-    pthread_mutex_unlock(&lt->bp->max_threads_mutex);
+    if(lt->inc_threads) {
+      pthread_mutex_lock(&lt->bp->max_threads_mutex);
+      lt->bp->max_threads++;
+      pthread_mutex_unlock(&lt->bp->max_threads_mutex);
+    }
 
     return (void*) false;
   }
 
-  pthread_mutex_lock(&lt->bp->max_threads_mutex);
-  lt->bp->max_threads++;
-  pthread_mutex_unlock(&lt->bp->max_threads_mutex);
+  if(lt->inc_threads) {
+    pthread_mutex_lock(&lt->bp->max_threads_mutex);
+    lt->bp->max_threads++;
+    pthread_mutex_unlock(&lt->bp->max_threads_mutex);
+  }
 
   return (void*) true;
 }
@@ -1072,11 +1068,11 @@ bool BPN::Train() {		// threaded version
       derivate = DerivateLinear;
     }
 
-    ok = DoThreading(i, derivate, UnitThreadFuncTrain, false);
+    ok = DoThreading(i, derivate, UnitThreadFuncTrain);
 
     if (!ok) {			// join upper renew weight threads
       for(unsigned j = i; j < size-2; ++j) {
-	if(thread_ids_w[j])
+	if(li_w[j]->inc_threads)
 	  pthread_join(thread_ids_w[j], NULL);
       }
 
@@ -1087,12 +1083,12 @@ bool BPN::Train() {		// threaded version
     lt = li_w[i - 1];
 
     lt->layer = i + 1;
-    lt->apply = NULL;
     lt->start = 0;
     lt->end = layers[i + 1]->size;
     lt->bp = this;
 
     if (max_threads > 0) {	// if threads are available, use one
+      lt->inc_threads = true;
       pthread_mutex_lock(&max_threads_mutex);
       --max_threads;
       pthread_mutex_unlock(&max_threads_mutex);
@@ -1100,19 +1096,15 @@ bool BPN::Train() {		// threaded version
       pthread_create(&thread_ids_w[i - 1], NULL, UnitThreadFuncRenew, lt);
     }
     else {
-      thread_ids_w[i - 1] = NULL;
-      pthread_mutex_lock(&max_threads_mutex);
-      --max_threads;
-      pthread_mutex_unlock(&max_threads_mutex);
-
+      lt->inc_threads = false;
       UnitThreadFuncRenew(lt);
     }
   }
 
-  ok = DoThreading(1, NULL, UnitThreadFuncRenew, true);
+  ok = DoThreading(1, NULL, UnitThreadFuncRenew);
 
   for(i=0; i < size -2; ++i) {
-    if (thread_ids_w[i])
+    if (li_w[i]->inc_threads)
       pthread_join(thread_ids_w[i], NULL);
   }
 
