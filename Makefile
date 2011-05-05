@@ -11,9 +11,10 @@
 CC            = gcc
 CXX           = g++
 DEFINES       = -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED
-CLIFLAGS      = -pipe -g -Wall -W -DNDEBUG -D_REENTRANT -O3
-CFLAGS        = $(CLIFLAGS) $(DEFINES)
-CXXFLAGS      = $(CLIFLAGS) $(DEFINES)
+CLIFLAGS      = -pipe -march=core2 -DNDEBUG -O3 -Wall
+COMMONFLAGS   = -pipe -march=core2 -DNDEBUG -g -Wall -W -D_REENTRANT -O3
+CFLAGS        = $(COMMONFLAGS) $(DEFINES)
+CXXFLAGS      = $(COMMONFLAGS) $(DEFINES)
 INCPATH       = -I/usr/share/qt4/mkspecs/linux-g++ -I. -I/usr/include/qt4/QtCore -I/usr/include/qt4/QtGui -I/usr/include/qt4 -I. -I.
 LINK          = g++
 LFLAGS        = -Wl,-rpath,/usr/lib64/qt4
@@ -99,7 +100,7 @@ first: all
 
 ####### Build rules
 
-all: Makefile $(TARGET)
+all: Makefile $(TARGET) cli
 
 $(TARGET): ui_ntrain.h $(OBJECTS)
 	$(LINK) $(LFLAGS) -o $(TARGET) $(OBJECTS) $(OBJCOMP) $(LIBS)
