@@ -1,6 +1,3 @@
-# -*- mode:org -*-         neuroChessTrainer
-#+STARTUP: indent
-
 * neuroChessTrainer (nTrain)
 is a little free Qt[fn:1] GUI manipulating backpropagation neural
 networks[fn:2].  It's supposed to be fed with specific files created
