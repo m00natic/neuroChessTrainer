@@ -17,10 +17,10 @@ the number of neurons in the input and output layers) can be changed
 by saving, editing and then loading the new one.  In fact it seems
 that this network is too small for chess.
 
-** `Train directory' file browser button
+*** `Train directory' file browser button
 specifies directory of log files to be used.
 
-** `Convert train files' button
+*** `Convert train files' button
 converts raw .log files to .bpnl files where FEN[fn:5] notation
 is recoded in 262 bits + eval number allowing slightly faster training
 and assessment.  This conversion is optional and doesn't seem to give
@@ -29,26 +29,26 @@ there is even one .bpnl file in the `Train directory', only .bpnl
 files will be used for training or assessment.  Otherwise .log files
 will be used.
 
-** `Save' file browser button
+*** `Save' file browser button
 writes current network to file.
 
-** `Load' file browser button
+*** `Load' file browser button
 loads network from file.
 
-** `Train' button
+*** `Train' button
 invokes backpropagation learning over `Train directory'.  For just in
 case, in bpn~ file current state of the network is backup-ed after
 each file is processed.  On error, network state is restored from
 there.
 
-** `Epochs' spin box
+*** `Epochs' spin box
 specifies number of train iterations over the set of files.
 
-** `Test' button
+*** `Test' button
 calculates mean error which the current network gives
 over the files in `Train directory' and total mean error.
 
-** `Threads' spin box
+*** `Threads' spin box
 specifies number of threads to be used for training or testing.
 
 * Neural network files specification
