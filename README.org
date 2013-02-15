@@ -11,8 +11,8 @@ characteristics: 4 layers - input with 262 neurons, hidden with 66
 neurons, hidden with 256 neurons and output with 1 neuron.  Neurons
 from all layers except the input have bias.  All neurons have a
 sigmoid output function ranging in (-1; 1).  Network output is scaled
-by 29744 which is Grapefruit's internal maximum.  Learning rate is
-0.35, acceleration 0.3.  This somewhat arbitrary specification (except
+by 29744 which is Grapefruit's internal maximum.  Learning rate is 0.35,
+acceleration 0.3.  This somewhat arbitrary specification (except
 the number of neurons in the input and output layers) can be changed
 by saving, editing and then loading the new one.  In fact it seems
 that this network is too small for chess.
